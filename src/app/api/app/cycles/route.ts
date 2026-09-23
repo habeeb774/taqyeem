@@ -1,10 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { requireUser, jsonError, must } from '@/server/context';
+import { jsonError, must, requireUser } from '@/server/context';
 import { pool } from '@/db';
 import { allVisibleEmployees } from '@/db/queries/security';
 import { resolveTemplate } from '@/db/queries/evaluations';
 import { withNeonTransaction } from '@/lib/neon/admin';
+
+type CycleRow = {
+  id: string;
+  name: string;
+  month: number;
+  year: number;
+  status: string;
+  starts_at: string;
+  ends_at: string;
+  opened_at: string | null;
+  published_at: string | null;
+  locked_at: string | null;
+};
+
+type IdRow = { id: string };
+type VisibleEmployee = { id: string };
 
 const schema = z.object({
   name: z.string().min(2),
@@ -21,8 +37,9 @@ function hasOrganizationScope(c: Awaited<ReturnType<typeof requireUser>>) {
 export async function GET() {
   try {
     const c = await requireUser();
-    const q = await pool.query(
-      `select id,name,month,year,status,starts_at,ends_at,opened_at,published_at,locked_at
+    const q = await pool.query<CycleRow>(
+      `select
+         id,name,month,year,status,starts_at,ends_at,opened_at,published_at,locked_at
        from public.evaluation_cycles
        where organization_id=$1::uuid
        order by year desc,month desc`,
@@ -31,7 +48,10 @@ export async function GET() {
     return NextResponse.json({ ok: true, cycles: q.rows });
   } catch (e) {
     const x = jsonError(e);
-    return NextResponse.json({ ok: false, error: x.error }, { status: x.status });
+    return NextResponse.json(
+      { ok: false, error: x.error },
+      { status: x.status },
+    );
   }
 }
 
@@ -44,14 +64,19 @@ export async function POST(req: NextRequest) {
     if (b?.action === 'open') {
       const id = z.string().uuid().parse(b.id);
       if (!hasOrganizationScope(c)) {
-        throw Object.assign(new Error('organization_scope_required'), { status: 403 });
+        throw Object.assign(new Error('organization_scope_required'), {
+          status: 403,
+        });
       }
 
-      const em = await allVisibleEmployees(c);
+      const em: VisibleEmployee[] = await allVisibleEmployees(c);
       let made = 0;
       await withNeonTransaction(async (tx) => {
-        const cycle = await tx.query(
-          `select id,status from public.evaluation_cycles where id=$1::uuid and organization_id=$2::uuid for update`,
+        const cycle = await tx.query<IdRow>(
+          `select id
+           from public.evaluation_cycles
+           where id=$1::uuid and organization_id=$2::uuid
+           for update`,
           [id, c.organizationId],
         );
         if (!cycle.rows[0]) throw new Error('cycle_not_found');
@@ -65,20 +90,20 @@ export async function POST(req: NextRequest) {
           [id, c.organizationId],
         );
 
-        for (const e of em as any[]) {
+        for (const employee of em) {
           const ex = await tx.query(
             `select 1 from public.evaluation_exclusions where cycle_id=$1::uuid and employee_id=$2::uuid`,
-            [id, e.id],
+            [id, employee.id],
           );
           if (ex.rows[0]) continue;
-          const tid = await resolveTemplate(c.organizationId, String(e.id));
+          const tid = await resolveTemplate(c.organizationId, String(employee.id));
           if (!tid) continue;
           const r = await tx.query(
             `insert into public.evaluation_assignments(cycle_id,employee_id,evaluator_user_id,template_id,evaluation_type,created_by)
              values($1::uuid,$2::uuid,$3::uuid,$4::uuid,'performance',$3::uuid)
              on conflict(cycle_id,employee_id,evaluator_user_id,evaluation_type) do nothing
              returning id`,
-            [id, e.id, c.user.id, tid],
+            [id, employee.id, c.user.id, tid],
           );
           made += r.rowCount || 0;
         }
@@ -86,27 +111,52 @@ export async function POST(req: NextRequest) {
         await tx.query(
           `insert into public.audit_logs(organization_id,user_id,action,entity_type,entity_id,new_values)
            values($1::uuid,$2::uuid,'cycle.open','evaluation_cycle',$3::uuid,$4::jsonb)`,
-          [c.organizationId, c.user.id, id, JSON.stringify({ assignments_created: made })],
+          [
+            c.organizationId,
+            c.user.id,
+            id,
+            JSON.stringify({ assignments_created: made }),
+          ],
         );
       });
       return NextResponse.json({ ok: true, assignments_created: made });
     }
 
     const p = schema.parse(b);
-    const existing = await pool.query(
-      `select * from public.evaluation_cycles where organization_id=$1::uuid and month=$2 and year=$3 limit 1`,
+    const existing = await pool.query<CycleRow>(
+      `select *
+       from public.evaluation_cycles
+       where organization_id=$1::uuid and month=$2 and year=$3
+       limit 1`,
       [c.organizationId, p.month, p.year],
     );
-    if (existing.rows[0]) return NextResponse.json({ ok: true, cycle: existing.rows[0], existing: true });
-    const q = await pool.query(
+    if (existing.rows[0]) {
+      return NextResponse.json({
+        ok: true,
+        cycle: existing.rows[0],
+        existing: true,
+      });
+    }
+    const q = await pool.query<CycleRow>(
       `insert into public.evaluation_cycles(organization_id,name,month,year,starts_at,ends_at,status,created_by)
        values($1::uuid,$2,$3,$4,$5::date,$6::date,'draft',$7::uuid)
        returning *`,
-      [c.organizationId, p.name, p.month, p.year, p.starts_at, p.ends_at, c.user.id],
+      [
+        c.organizationId,
+        p.name,
+        p.month,
+        p.year,
+        p.starts_at,
+        p.ends_at,
+        c.user.id,
+      ],
     );
     return NextResponse.json({ ok: true, cycle: q.rows[0] });
   } catch (e) {
     const x = jsonError(e);
-    return NextResponse.json({ ok: false, error: x.error }, { status: x.status });
+    return NextResponse.json(
+      { ok: false, error: x.error },
+      { status: x.status },
+    );
   }
 }
