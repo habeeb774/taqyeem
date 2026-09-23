@@ -39,5 +39,18 @@ export function jsonError(error: unknown) {
     || (/UNAUTHENTICATED/.test(String(err?.message)) ? 401 : /FORBIDDEN/.test(String(err?.message)) ? 403 : 400);
 
   if (err?.name === 'ZodError') return { status: 400, error: 'تحقق من الحقول المدخلة' };
-  return { status, error: String(err?.message || 'ERROR') };
+  const message = String(err?.message || '');
+  const known = new Set([
+    'UNAUTHENTICATED',
+    'FORBIDDEN',
+    'PROFILE_NOT_READY',
+    'INVALID_ROLE',
+    'INVALID_EMPLOYEE',
+    'JOB_TITLE_NOT_FOUND',
+    'ID_REQUIRED',
+    'CANNOT_DISABLE_SELF',
+    'target_change_reason_required',
+  ]);
+  if (known.has(message)) return { status, error: message };
+  return { status: status >= 500 ? status : 400, error: 'REQUEST_FAILED' };
 }

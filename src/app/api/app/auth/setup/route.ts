@@ -19,5 +19,5 @@ export async function POST(req:NextRequest){
       await tx.query(`insert into public.audit_logs(organization_id,user_id,action,entity_type,entity_id,new_values) values($1::uuid,$2::uuid,'system.first_admin','user',$2::uuid,$3::jsonb)`,[orgId,uid,JSON.stringify({email,full_name:p.data.full_name,auth:'Auth.js'})]);
     });
     return NextResponse.json({ok:true});
-  }catch(e:any){return NextResponse.json({ok:false,error:String(e?.message||'SETUP_FAILED')},{status:400});}
+  }catch{return NextResponse.json({ok:false,error:'SETUP_FAILED'},{status:400});}
 }
