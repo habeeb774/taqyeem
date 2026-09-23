@@ -54,7 +54,7 @@ NEXTAUTH_URL=https://YOUR-PROJECT.vercel.app
 3. لا تغيّر Build Command. Vercel سيستخدم `vercel-build` الموجود في `package.json`:
 
 ```bash
-tsx scripts/prepare-base.ts && tsx scripts/apply-upgrade.ts && next build
+node scripts/cleanup-legacy.mjs && tsx scripts/prepare-base.ts && tsx scripts/apply-upgrade.ts && next build
 ```
 
 - إذا كانت قاعدة TAQYEEM الحالية موجودة: لا يتم حذف أو إعادة إنشاء البيانات؛ يتم تطبيق Migration الترقية فقط.
@@ -68,8 +68,7 @@ tsx scripts/prepare-base.ts && tsx scripts/apply-upgrade.ts && next build
 
 ```bash
 npm install
-npm run typecheck
-npm run build
+npm run verify
 npm run db:migrate
 npm run db:seed
 ```
@@ -84,6 +83,25 @@ npm run create:super-admin
 ```
 
 لا تُرفع ملفات `.env` أو أي Secrets إلى Git.
+
+## بوابات الجودة
+
+قبل أي رفع أو نشر شغّل:
+
+```bash
+npm run verify
+```
+
+هذا الأمر يشغّل فحوصات الجودة، TypeScript، ثم بناء Next.js. فحوصات الجودة تمنع:
+
+- تتبع ملفات build/cache/secrets أو الأرشيفات داخل Git.
+- تسريب أسرار أو روابط قاعدة بيانات حقيقية في الملفات المتتبعة.
+- Routes بدون تحقق جلسة/صلاحية.
+- كود API أو Source مضغوط بأسطر طويلة جدًا.
+- استخدام `localStorage` لبيانات الإنتاج، وحصر `sessionStorage` في تفضيلات واجهة معروفة.
+- استيراد كود السيرفر أو قاعدة البيانات داخل Client Components.
+- ترك `console.*` داخل كود الواجهة الإنتاجي.
+
 
 ## ملاحظات قاعدة البيانات
 
