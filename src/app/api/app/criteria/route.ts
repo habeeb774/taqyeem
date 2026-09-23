@@ -11,6 +11,30 @@ import {
   requireUser,
 } from '@/server/context';
 
+type TemplateRow = {
+  id: string;
+  name: string;
+  scope_type: string;
+  scope_id: string | null;
+  version: number;
+};
+
+type TemplateItemRow = {
+  id: string;
+  code: string;
+  name: string;
+  description: string | null;
+  max_score: string | number;
+  weight: string | number;
+  sort_order: number;
+  mandatory: boolean;
+  visible_to_employee: boolean;
+  comment_required: boolean;
+};
+
+type IdRow = { id: string };
+type VersionRow = { v: number };
+
 const saveCriteriaSchema = z.object({
   employee_id: z.string().uuid(),
   items: z
@@ -36,7 +60,7 @@ function createCriterionCode(employeeId: string, version: number, index: number)
 }
 
 async function getTemplate(templateId: string) {
-  const result = await pool.query(
+  const result = await pool.query<TemplateRow>(
     `
       select id, name, scope_type, scope_id, version
       from public.evaluation_templates
@@ -85,7 +109,8 @@ export async function GET(req: NextRequest) {
     }
 
     const template = await getTemplate(templateId);
-    const items = (await templateItems(templateId)).map((item: any) => ({
+    const rawItems = (await templateItems(templateId)) as TemplateItemRow[];
+    const items = rawItems.map((item) => ({
       ...item,
       max_score: Number(item.max_score),
       weight: Number(item.weight),
@@ -122,7 +147,7 @@ export async function POST(req: NextRequest) {
     let version = 1;
 
     await withNeonTransaction(async (tx) => {
-      const versionResult = await tx.query(
+      const versionResult = await tx.query<VersionRow>(
         `
           select coalesce(max(version), 0)::int + 1 v
           from public.evaluation_templates
@@ -140,7 +165,7 @@ export async function POST(req: NextRequest) {
         payload.employee_id,
       );
 
-      const templateResult = await tx.query(
+      const templateResult = await tx.query<IdRow>(
         `
           insert into public.evaluation_templates(
             organization_id,
@@ -177,7 +202,7 @@ export async function POST(req: NextRequest) {
       for (let index = 0; index < payload.items.length; index += 1) {
         const item = payload.items[index];
         const code = createCriterionCode(payload.employee_id, version, index);
-        const criterionResult = await tx.query(
+        const criterionResult = await tx.query<IdRow>(
           `
             insert into public.evaluation_criteria(
               organization_id,
