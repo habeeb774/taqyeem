@@ -119,7 +119,26 @@ export async function GET(req: NextRequest) {
       const ids = await allVisibleEmployeeIds(c);
       if (!ids.length) return NextResponse.json({ ok: true, evaluations: [] });
       const r = await pool.query(
-        `select e.id,e.cycle_id,e.employee_id,e.evaluator_user_id,e.status,e.weighted_score,e.final_score,e.result_label,e.notes,e.submitted_at,e.reviewed_at,e.approved_at,e.published_at,emp.full_name,emp.employee_number,j.name job_title_name,c.name cycle_name,c.month,c.year
+        `select
+           e.id,
+           e.cycle_id,
+           e.employee_id,
+           e.evaluator_user_id,
+           e.status,
+           e.weighted_score,
+           e.final_score,
+           e.result_label,
+           e.notes,
+           e.submitted_at,
+           e.reviewed_at,
+           e.approved_at,
+           e.published_at,
+           emp.full_name,
+           emp.employee_number,
+           j.name job_title_name,
+           c.name cycle_name,
+           c.month,
+           c.year
          from public.evaluations e
          join public.employees emp on emp.id=e.employee_id
          left join public.job_titles j on j.id=emp.job_title_id

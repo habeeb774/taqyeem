@@ -107,18 +107,76 @@ async function main() {
     );
     if (organization.rows[0]) {
       const args = [organization.rows[0].id, false, [], [], false, null, null];
-      const scopeSql = `($2::boolean or (cardinality($3::uuid[])>0 and e.branch_id=any($3::uuid[])) or (cardinality($4::uuid[])>0 and e.department_id=any($4::uuid[])) or ($5::boolean and exists(select 1 from public.evaluation_assignments a where a.employee_id=e.id and a.evaluator_user_id=$6::uuid)) or ($7::uuid is not null and (e.id=$7::uuid or e.manager_id=$7::uuid or e.supervisor_id=$7::uuid)))`;
+      const scopeSql = `(
+        $2::boolean
+        or (cardinality($3::uuid[]) > 0 and e.branch_id = any($3::uuid[]))
+        or (cardinality($4::uuid[]) > 0 and e.department_id = any($4::uuid[]))
+        or (
+          $5::boolean
+          and exists(
+            select 1
+            from public.evaluation_assignments a
+            where a.employee_id = e.id
+              and a.evaluator_user_id = $6::uuid
+          )
+        )
+        or (
+          $7::uuid is not null
+          and (e.id = $7::uuid or e.manager_id = $7::uuid or e.supervisor_id = $7::uuid)
+        )
+      )`;
       await Promise.all([
         db.query(
-          `select distinct d.id from public.departments d left join public.employees e on e.department_id=d.id and e.deleted_at is null where d.organization_id=$1::uuid and d.active=true and (d.id=any($4::uuid[]) or exists(select 1 from public.employees e where e.department_id=d.id and e.organization_id=$1::uuid and e.deleted_at is null and ${scopeSql}))`,
+          `select distinct d.id
+           from public.departments d
+           left join public.employees e on e.department_id = d.id and e.deleted_at is null
+           where d.organization_id = $1::uuid
+             and d.active = true
+             and (
+               d.id = any($4::uuid[])
+               or exists(
+                 select 1
+                 from public.employees e
+                 where e.department_id = d.id
+                   and e.organization_id = $1::uuid
+                   and e.deleted_at is null
+                   and ${scopeSql}
+               )
+             )`,
           args,
         ),
         db.query(
-          `select distinct b.id from public.branches b left join public.employees e on e.branch_id=b.id and e.deleted_at is null where b.organization_id=$1::uuid and b.active=true and (b.id=any($3::uuid[]) or exists(select 1 from public.departments d where d.branch_id=b.id and d.id=any($4::uuid[])) or exists(select 1 from public.employees e where e.branch_id=b.id and e.organization_id=$1::uuid and e.deleted_at is null and ${scopeSql}))`,
+          `select distinct b.id
+           from public.branches b
+           left join public.employees e on e.branch_id = b.id and e.deleted_at is null
+           where b.organization_id = $1::uuid
+             and b.active = true
+             and (
+               b.id = any($3::uuid[])
+               or exists(
+                 select 1
+                 from public.departments d
+                 where d.branch_id = b.id and d.id = any($4::uuid[])
+               )
+               or exists(
+                 select 1
+                 from public.employees e
+                 where e.branch_id = b.id
+                   and e.organization_id = $1::uuid
+                   and e.deleted_at is null
+                   and ${scopeSql}
+               )
+             )`,
           args,
         ),
         db.query(
-          `select distinct j.id from public.job_titles j join public.employees e on e.job_title_id=j.id and e.deleted_at is null where j.organization_id=$1::uuid and e.organization_id=$1::uuid and j.active=true and ${scopeSql}`,
+          `select distinct j.id
+           from public.job_titles j
+           join public.employees e on e.job_title_id = j.id and e.deleted_at is null
+           where j.organization_id = $1::uuid
+             and e.organization_id = $1::uuid
+             and j.active = true
+             and ${scopeSql}`,
           args,
         ),
       ]);
