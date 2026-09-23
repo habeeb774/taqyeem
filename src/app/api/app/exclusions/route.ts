@@ -2,7 +2,24 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
 import { pool } from '@/db';
-import { assertEmployeeAccess, jsonError, must, requireUser } from '@/server/context';
+import {
+  assertEmployeeAccess,
+  jsonError,
+  must,
+  requireUser,
+} from '@/server/context';
+
+type IdRow = { id: string };
+
+type ExclusionRow = {
+  id: string;
+  cycle_id: string;
+  employee_id: string;
+  exclusion_type: string;
+  reason: string;
+  created_by: string | null;
+  created_at: string;
+};
 
 const exclusionSchema = z.object({
   cycle_id: z.string().uuid(),
@@ -21,7 +38,10 @@ const exclusionSchema = z.object({
 
 function errorResponse(error: unknown) {
   const result = jsonError(error);
-  return NextResponse.json({ ok: false, error: result.error }, { status: result.status });
+  return NextResponse.json(
+    { ok: false, error: result.error },
+    { status: result.status },
+  );
 }
 
 export async function GET(request: NextRequest) {
@@ -29,8 +49,11 @@ export async function GET(request: NextRequest) {
     const context = await requireUser();
     must(context, 'evaluations.view');
 
-    const cycleId = z.string().uuid().parse(request.nextUrl.searchParams.get('cycle_id'));
-    const result = await pool.query(
+    const cycleId = z
+      .string()
+      .uuid()
+      .parse(request.nextUrl.searchParams.get('cycle_id'));
+    const result = await pool.query<ExclusionRow>(
       `select x.*
        from public.evaluation_exclusions x
        join public.employees e on e.id=x.employee_id
@@ -38,8 +61,8 @@ export async function GET(request: NextRequest) {
       [cycleId, context.organizationId],
     );
 
-    const exclusions = [];
-    for (const exclusion of result.rows as any[]) {
+    const exclusions: ExclusionRow[] = [];
+    for (const exclusion of result.rows) {
       try {
         await assertEmployeeAccess(context, String(exclusion.employee_id));
         exclusions.push(exclusion);
@@ -62,7 +85,7 @@ export async function POST(request: NextRequest) {
     const value = exclusionSchema.parse(await request.json());
     await assertEmployeeAccess(context, value.employee_id);
 
-    const result = await pool.query(
+    const result = await pool.query<IdRow>(
       `insert into public.evaluation_exclusions(cycle_id,employee_id,exclusion_type,reason,created_by)
        values($1::uuid,$2::uuid,$3,$4,$5::uuid)
        on conflict(cycle_id,employee_id) do update set
@@ -83,8 +106,14 @@ export async function DELETE(request: NextRequest) {
     const context = await requireUser();
     must(context, 'evaluations.edit');
 
-    const cycleId = z.string().uuid().parse(request.nextUrl.searchParams.get('cycle_id'));
-    const employeeId = z.string().uuid().parse(request.nextUrl.searchParams.get('employee_id'));
+    const cycleId = z
+      .string()
+      .uuid()
+      .parse(request.nextUrl.searchParams.get('cycle_id'));
+    const employeeId = z
+      .string()
+      .uuid()
+      .parse(request.nextUrl.searchParams.get('employee_id'));
     await assertEmployeeAccess(context, employeeId);
 
     await pool.query(
