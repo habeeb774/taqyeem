@@ -49,11 +49,16 @@
     "@types/react": "19.2.17",
     "@types/react-dom": "19.2.7",
     "@types/ws": "^8.18.1",
-    "drizzle-kit": "^0.31.10",
-    "tsx": "^4.20.6",
+    "drizzle-kit": "^0.31.11",
+    "tsx": "^4.23.15",
     "typescript": "^5.8.2"
   },
   "engines": {
     "node": "22.x"
+  },
+  "overrides": {
+    "@esbuild-kit/core-utils": {
+      "esbuild": "0.25.12"
+    }
   }
 }
