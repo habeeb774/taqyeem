@@ -5,10 +5,30 @@ import { jsonError, requireUser } from '@/server/context';
 
 function errorResponse(error: unknown) {
   const result = jsonError(error);
-  return NextResponse.json({ ok: false, error: result.error }, { status: result.status });
+  return NextResponse.json(
+    { ok: false, error: result.error },
+    { status: result.status },
+  );
 }
 
-function cycleView(row: any) {
+type EmployeePortalRow = {
+  id: string;
+  employee_number: string | null;
+  full_name: string;
+  email: string | null;
+  phone: string | null;
+  status: string;
+  job_title_name: string | null;
+  job_titles?: { name: string } | null;
+};
+
+type CycleBackedRow = {
+  cycle_name: string;
+  month: number;
+  year: number;
+};
+
+function cycleView<T extends CycleBackedRow>(row: T) {
   return {
     ...row,
     evaluation_cycles: {
@@ -34,14 +54,14 @@ export async function GET() {
     }
 
     const [employeeResult, evaluations, targets, attendance] = await Promise.all([
-      pool.query(
+      pool.query<EmployeePortalRow>(
         `select e.id,e.employee_number,e.full_name,e.email,e.phone,e.status,j.name job_title_name
          from public.employees e
          left join public.job_titles j on j.id=e.job_title_id
          where e.id=$1::uuid and e.organization_id=$2::uuid`,
         [employeeId, context.organizationId],
       ),
-      pool.query(
+      pool.query<CycleBackedRow>(
         `select e.id,e.cycle_id,e.status,e.final_score,e.result_label,e.notes,e.published_at,
                 e.template_snapshot,c.name cycle_name,c.month,c.year
          from public.evaluations e
@@ -50,7 +70,7 @@ export async function GET() {
          order by e.published_at desc nulls last`,
         [employeeId, ['published', 'locked']],
       ),
-      pool.query(
+      pool.query<CycleBackedRow>(
         `select t.id,t.cycle_id,t.target_amount,t.achieved_amount,t.source,
                 c.name cycle_name,c.month,c.year
          from public.sales_targets t
@@ -59,7 +79,7 @@ export async function GET() {
          order by t.updated_at desc`,
         [employeeId],
       ),
-      pool.query(
+      pool.query<CycleBackedRow>(
         `select a.id,a.cycle_id,a.base_score,a.final_score,a.notes,a.status,a.published_at,
                 c.name cycle_name,c.month,c.year
          from public.attendance_evaluations a
@@ -70,8 +90,10 @@ export async function GET() {
       ),
     ]);
 
-    const employee: any = employeeResult.rows[0] || null;
-    if (employee) employee.job_titles = employee.job_title_name ? { name: employee.job_title_name } : null;
+    const employee = employeeResult.rows[0] || null;
+    if (employee) {
+      employee.job_titles = employee.job_title_name ? { name: employee.job_title_name } : null;
+    }
 
     return NextResponse.json({
       ok: true,
