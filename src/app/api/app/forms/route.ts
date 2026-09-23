@@ -40,7 +40,7 @@ const transitionActions = new Set(transitionActionSchema.options);
 
 async function nextDocumentNumber(
   context: Awaited<ReturnType<typeof requireUser>>,
-  body: any,
+  body: Record<string, unknown>,
 ) {
   must(context, "forms.create");
   const prefix = z
@@ -190,15 +190,16 @@ export async function PUT(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const context = await requireUser();
-    const body = await req.json();
+    const body = (await req.json()) as Record<string, unknown>;
     if (body.action === "next_number") {
       return jsonOk({ document_no: await nextDocumentNumber(context, body) });
     }
 
-    if (transitionActions.has(body.action)) {
+    const transitionAction = transitionActionSchema.safeParse(body.action);
+    if (transitionAction.success && transitionActions.has(transitionAction.data)) {
       const result = await transitionFormDocument(context, {
         documentId: z.string().uuid().parse(body.document_id),
-        action: transitionActionSchema.parse(body.action),
+        action: transitionAction.data,
         comment: z.string().max(1000).nullable().optional().parse(body.comment),
       });
       return jsonOk({
