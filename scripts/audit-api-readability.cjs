@@ -8,7 +8,6 @@ const maxLineLength = 420;
 const legacyLongLineRoutes = new Set([
   'admin/route.ts',
   'attendance/route.ts',
-  'audit/route.ts',
   'auth/login/route.ts',
   'auth/status/route.ts',
   'bootstrap/route.ts',
@@ -16,10 +15,8 @@ const legacyLongLineRoutes = new Set([
   'employees/route.ts',
   'exclusions/route.ts',
   'form-data/route.ts',
-  'notifications/route.ts',
   'portal/route.ts',
   'reports/route.ts',
-  'targets/route.ts',
 ]);
 
 function walk(dir){
