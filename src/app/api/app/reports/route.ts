@@ -1,6 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import * as XLSX from 'xlsx';
-
 import { pool } from '@/db';
 import { allVisibleEmployeeIds } from '@/db/queries/security';
 import { jsonError, must, requireUser } from '@/server/context';
@@ -107,6 +105,32 @@ function queryAttendance(
   );
 }
 
+function xmlEscape(value: unknown) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function cell(value: unknown) {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return `<Cell><Data ss:Type="Number">${value}</Data></Cell>`;
+  }
+
+  return `<Cell><Data ss:Type="String">${xmlEscape(value)}</Data></Cell>`;
+}
+
+function worksheet(name: string, rows: any[]) {
+  const columns = [...new Set(rows.flatMap((row) => Object.keys(row)))];
+  const header = `<Row>${columns.map(cell).join('')}</Row>`;
+  const body = rows
+    .map((row) => `<Row>${columns.map((column) => cell(row[column])).join('')}</Row>`)
+    .join('');
+
+  return `<Worksheet ss:Name="${xmlEscape(name)}"><Table>${header}${body}</Table></Worksheet>`;
+}
+
 function createWorkbook(
   performance: any[],
   targets: any[],
@@ -114,32 +138,22 @@ function createWorkbook(
   year: string | null,
   month: string | null,
 ) {
-  const workbook = XLSX.utils.book_new();
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
+ xmlns:o="urn:schemas-microsoft-com:office:office"
+ xmlns:x="urn:schemas-microsoft-com:office:excel"
+ xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
+ ${worksheet('الأداء', performance)}
+ ${worksheet('الأهداف', targets)}
+ ${worksheet('الحضور', attendance)}
+</Workbook>`;
 
-  XLSX.utils.book_append_sheet(
-    workbook,
-    XLSX.utils.json_to_sheet(performance),
-    'الأداء',
-  );
-  XLSX.utils.book_append_sheet(
-    workbook,
-    XLSX.utils.json_to_sheet(targets),
-    'الأهداف',
-  );
-  XLSX.utils.book_append_sheet(
-    workbook,
-    XLSX.utils.json_to_sheet(attendance),
-    'الحضور',
-  );
-
-  const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
-  return new NextResponse(buffer, {
+  return new NextResponse(xml, {
     headers: {
-      'content-type':
-        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'content-type': 'application/vnd.ms-excel; charset=utf-8',
       'content-disposition': `attachment; filename="taqyeem-report-${
         year || 'all'
-      }-${month || 'all'}.xlsx"`,
+      }-${month || 'all'}.xls"`,
     },
   });
 }
