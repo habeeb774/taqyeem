@@ -7,10 +7,8 @@ const maxLineLength = 420;
 // New routes, and routes removed from this list after cleanup, must stay readable.
 const legacyLongLineRoutes = new Set([
   'admin/route.ts',
-  'attendance/route.ts',
   'auth/login/route.ts',
   'auth/status/route.ts',
-  'bootstrap/route.ts',
   'criteria/route.ts',
   'employees/route.ts',
   'reports/route.ts',
