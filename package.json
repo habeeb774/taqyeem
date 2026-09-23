@@ -25,7 +25,8 @@
     "audit:client-server-boundary": "node scripts/audit-client-server-boundary.cjs",
     "audit:client-console": "node scripts/audit-client-console.cjs",
     "audit:secrets": "node scripts/audit-secrets.cjs",
-    "audit:repo-hygiene": "node scripts/audit-repo-hygiene.cjs"
+    "audit:repo-hygiene": "node scripts/audit-repo-hygiene.cjs",
+    "verify": "npm run audit:quality && npm run typecheck && npm run build"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1137.0",
