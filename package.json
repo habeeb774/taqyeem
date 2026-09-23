@@ -19,7 +19,7 @@
     "prebuild": "npm run audit:quality && node scripts/cleanup-legacy.mjs",
     "audit:api-security": "node scripts/audit-api-security.cjs",
     "audit:client-storage": "node scripts/audit-client-storage.cjs",
-    "audit:quality": "npm run audit:repo-hygiene && npm run audit:secrets && npm run audit:env-example && npm run audit:code-cleanliness && npm run audit:api-security && npm run audit:api-readability && npm run audit:client-storage && npm run audit:source-readability && npm run audit:client-server-boundary && npm run audit:client-console",
+    "audit:quality": "npm run audit:repo-hygiene && npm run audit:secrets && npm run audit:env-example && npm run audit:code-cleanliness && npm run audit:dead-comments && npm run audit:api-security && npm run audit:api-readability && npm run audit:client-storage && npm run audit:source-readability && npm run audit:client-server-boundary && npm run audit:client-console",
     "audit:api-readability": "node scripts/audit-api-readability.cjs",
     "audit:source-readability": "node scripts/audit-source-readability.cjs",
     "audit:client-server-boundary": "node scripts/audit-client-server-boundary.cjs",
@@ -28,7 +28,8 @@
     "audit:repo-hygiene": "node scripts/audit-repo-hygiene.cjs",
     "verify": "npm run audit:quality && npm run typecheck && npm run build",
     "audit:env-example": "node scripts/audit-env-example.cjs",
-    "audit:code-cleanliness": "node scripts/audit-code-cleanliness.cjs"
+    "audit:code-cleanliness": "node scripts/audit-code-cleanliness.cjs",
+    "audit:dead-comments": "node scripts/audit-dead-comments.cjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1137.0",
