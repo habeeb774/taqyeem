@@ -6,6 +6,14 @@ import { requireUser, must, jsonError } from "@/server/context";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+const injectedHeadAssets = [
+  '<link rel="icon" href="/favicon.png?v=20260924" type="image/png" sizes="192x192">',
+  '<link rel="apple-touch-icon" href="/apple-icon.png?v=20260924">',
+  '<link rel="stylesheet" href="/unified-font.css">',
+  '<link rel="stylesheet" href="/system-topbar.css">',
+  '<script defer src="/system-topbar.js"></script>',
+].join("");
+
 export function stripInlineFormDefinitions(template: string) {
   return template.replace(
     /const FORMS = \[[\s\S]*?\n\];\n\nconst DEFAULT_SIGS/,
@@ -27,7 +35,7 @@ export async function GET() {
     // /api/app/forms?templates=1 after this server-side authorization check.
     const html = stripInlineFormDefinitions(template).replace(
       "</head>",
-      '<link rel="stylesheet" href="/unified-font.css"><link rel="stylesheet" href="/system-topbar.css"><script defer src="/system-topbar.js"></script></head>',
+      `${injectedHeadAssets}</head>`,
     );
     return new NextResponse(html, {
       headers: {

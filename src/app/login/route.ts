@@ -122,6 +122,8 @@ const html = `<!doctype html>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>تقييم أداء الموظفين</title>
+  <link rel="icon" href="/favicon.png?v=20260924" type="image/png" sizes="192x192">
+  <link rel="apple-touch-icon" href="/apple-icon.png?v=20260924">
   <link rel="stylesheet" href="/unified-font.css">
   <style>${styles}</style>
 </head>
