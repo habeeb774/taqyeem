@@ -1,0 +1,15 @@
+node_modules/
+.next/
+.npm-cache/
+.env
+.env.local
+.env.*.local
+*.log
+.DS_Store
+
+.vercel
+.env*
+!.env.example
+*.zip
+*.tsbuildinfo
+.neon

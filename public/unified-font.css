@@ -1,0 +1,37 @@
+@font-face {
+  font-family: "TaqyeemSans";
+  src: url("/thsans.otf") format("opentype");
+  font-weight: 300 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "ThSans";
+  src: url("/thsans.otf") format("opentype");
+  font-weight: 300 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "ThmanyahSans";
+  src: url("/thsans.otf") format("opentype");
+  font-weight: 300 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  --app-font: "TaqyeemSans", "ThSans", "ThmanyahSans", Tahoma, Arial, system-ui, sans-serif;
+  --ff: var(--app-font);
+}
+
+html,
+body,
+button,
+input,
+select,
+textarea {
+  font-family: var(--app-font) !important;
+}

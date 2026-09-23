@@ -1,0 +1,48 @@
+{
+  "name": "taqyeem-employee-performance-final",
+  "version": "2.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "tsx scripts/apply-upgrade.ts",
+    "db:studio": "drizzle-kit studio",
+    "db:seed": "tsx scripts/seed.ts",
+    "test:design": "node scripts/test-design-module.mjs",
+    "create:super-admin": "tsx scripts/create-super-admin.ts",
+    "vercel-build": "node scripts/cleanup-legacy.mjs && tsx scripts/prepare-base.ts && tsx scripts/apply-upgrade.ts && next build",
+    "db:prepare-base": "tsx scripts/prepare-base.ts",
+    "db:migrate:drizzle": "drizzle-kit migrate",
+    "prebuild": "node scripts/cleanup-legacy.mjs"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.1137.0",
+    "@aws-sdk/s3-request-presigner": "^3.1137.0",
+    "@neondatabase/serverless": "^1.1.0",
+    "bcryptjs": "^3.0.2",
+    "drizzle-orm": "^0.45.2",
+    "next": "16.3.5",
+    "next-auth": "5.0.0-beta.32",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "ws": "^8.18.3",
+    "xlsx": "0.18.5",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@neon/config": "^1.7.2",
+    "@types/node": "^22.13.10",
+    "@types/react": "19.2.17",
+    "@types/react-dom": "19.2.7",
+    "@types/ws": "^8.18.1",
+    "drizzle-kit": "^0.31.10",
+    "tsx": "^4.20.6",
+    "typescript": "^5.8.2"
+  },
+  "engines": {
+    "node": "22.x"
+  }
+}

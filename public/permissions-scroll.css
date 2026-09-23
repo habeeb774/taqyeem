@@ -1,0 +1,38 @@
+#svcMo .em-box {
+  display: grid !important;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  height: min(90dvh, 860px) !important;
+  max-height: 90dvh !important;
+  min-height: 0;
+  overflow: hidden;
+}
+
+#svcMo #svcBody {
+  display: block !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  overflow: auto !important;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  scrollbar-gutter: stable;
+  scrollbar-width: auto;
+  scrollbar-color: #2445d9 #eef2fa;
+}
+
+#svcMo #svcTabs,
+#svcMo .em-head,
+#svcMo .em-foot {
+  min-height: 0;
+}
+
+@media (max-width: 640px) {
+  #svcMo #svcBody {
+    height: auto !important;
+  }
+
+  #svcMo .em-box {
+    height: 94dvh !important;
+    max-height: 94dvh !important;
+  }
+}

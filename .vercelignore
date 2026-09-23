@@ -1,0 +1,7 @@
+src.zip
+public.zip
+.next
+node_modules
+.npm-cache
+taqyeem-github-sync
+*-backup-*
