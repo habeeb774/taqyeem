@@ -58,25 +58,8 @@
   }
   function busy(btn,on,label){if(!btn)return;if(on){btn.dataset.old=btn.textContent;btn.disabled=true;btn.textContent=label||'جارٍ الحفظ...';}else{btn.disabled=false;btn.textContent=btn.dataset.old||btn.textContent;}}
 
-  /* ---------- Login: email + password only ---------- */
-  function buildLoginUI(){
-    var sh=$('lgSheet');if(!sh)return;
-    sh.classList.remove('s2');
-    sh.innerHTML=''+
-      '<div class="lg-pane" style="padding:24px 30px 26px;position:absolute;inset:0">'+
-        '<div class="lg-eyebrow" style="padding:0 0 18px">تسجيل الدخول</div>'+ 
-        '<label class="lg-lbl">البريد الإلكتروني</label>'+ 
-        '<input class="em-inp" style="padding:0 14px;margin-bottom:14px;direction:ltr;text-align:left" id="lgEmail" type="email" autocomplete="username" placeholder="name@company.com" />'+
-        '<label class="lg-lbl">كلمة المرور</label>'+ 
-        '<input class="em-inp" style="padding:0 14px;direction:ltr;text-align:left" id="lgPassword" type="password" autocomplete="current-password" placeholder="••••••••" />'+
-        '<div class="lg-err" id="lerr2"></div>'+ 
-        '<div class="lg-hint" id="authHint">استخدم البريد الإلكتروني وكلمة المرور الخاصة بحسابك</div>'+ 
-        '<button class="lg-go" id="authGo" onclick="doLogin()">دخول</button>'+ 
-        '<button type="button" class="lg-link" onclick="buildResetRequestUI()">نسيت كلمة المرور؟</button>'+ 
-      '</div>';
-    var pass=$('lgPassword');if(pass)pass.addEventListener('keydown',function(e){if(e.key==='Enter')doLogin();});
-    var email=$('lgEmail');if(email)email.addEventListener('keydown',function(e){if(e.key==='Enter')$('lgPassword').focus();});
-  }
+  /* ---------- Auth handoff: /login is the only login screen ---------- */
+  function buildLoginUI(){ location.assign('/login'); }
   window.buildResetRequestUI=function(){var sh=$('lgSheet');if(!sh)return;sh.innerHTML='<div class="lg-pane" style="padding:24px 30px 26px;position:absolute;inset:0"><div class="lg-eyebrow" style="padding:0 0 18px">استعادة كلمة المرور</div><label class="lg-lbl">البريد الإلكتروني</label><input class="em-inp" style="padding:0 14px;direction:ltr;text-align:left" id="resetEmail" type="email" placeholder="name@company.com" /><div class="lg-err" id="lerr2"></div><div class="lg-hint">سنرسل رابط الاستعادة إذا كان البريد مسجلًا.</div><button class="lg-go" id="authGo" onclick="requestPasswordReset()">إرسال الرابط</button><button type="button" class="lg-link" onclick="buildLoginUI()">العودة لتسجيل الدخول</button></div>';};
   window.buildResetFormUI=function(token){var sh=$('lgSheet');if(!sh)return;sh.innerHTML='<div class="lg-pane" style="padding:24px 30px 26px;position:absolute;inset:0"><div class="lg-eyebrow" style="padding:0 0 18px">تعيين كلمة مرور جديدة</div><label class="lg-lbl">كلمة المرور الجديدة</label><input class="em-inp" style="padding:0 14px;direction:ltr;text-align:left" id="newPassword" type="password" minlength="8" placeholder="8 أحرف على الأقل" /><div class="lg-err" id="lerr2"></div><button class="lg-go" id="authGo" onclick="submitPasswordReset()">حفظ كلمة المرور</button><button type="button" class="lg-link" onclick="buildLoginUI()">العودة لتسجيل الدخول</button></div>';window._resetToken=token;};
   window.submitPasswordReset=async function(){var p=q($('newPassword')&&$('newPassword').value),err=$('lerr2'),btn=$('authGo');if(p.length<8){err.textContent='كلمة المرور يجب ألا تقل عن 8 أحرف';err.classList.add('show');return;}busy(btn,true,'جارٍ الحفظ...');try{await api('/api/app/auth/password-reset',{method:'POST',body:{action:'reset',token:window._resetToken,new_password:p}});err.textContent='تم تغيير كلمة المرور. يمكنك تسجيل الدخول الآن.';err.classList.add('show');setTimeout(buildLoginUI,1200);}catch(e){err.textContent='الرابط غير صالح أو منتهي';err.classList.add('show');}finally{busy(btn,false);}};
@@ -85,7 +68,7 @@
     var name=q($('setupName')&&$('setupName').value).trim(),email=q($('setupEmail')&&$('setupEmail').value).trim().toLowerCase(),password=q($('setupPassword')&&$('setupPassword').value),err=$('lerr2'),btn=$('authGo');
     if(name.length<2||email.indexOf('@')<1||password.length<8){err.textContent='أكمل الاسم والبريد وكلمة مرور من 8 أحرف على الأقل';err.classList.add('show');return;}
     busy(btn,true,'جارٍ إنشاء المدير...');
-    try{await api('/api/app/auth/setup',{method:'POST',body:{full_name:name,email:email,password:password}});A.setupRequired=false;buildLoginUI();var e=$('lgEmail');if(e)e.value=email;toast('تم إنشاء مدير النظام. سجّل الدخول الآن.');}
+    try{await api('/api/app/auth/setup',{method:'POST',body:{full_name:name,email:email,password:password}});A.setupRequired=false;location.assign('/login');}
     catch(e){err.textContent=humanError(e.message);err.classList.add('show');}
     finally{busy(btn,false);}
   };
@@ -121,25 +104,11 @@
     var d=$('systemDesignBtn');
     if(d){d.style.display=can('design_templates.view')?'':'none';if(!d.dataset.bound){d.dataset.bound='1';d.onclick=function(){location.href='/design-templates';};}}
   }
-  doLogin=async function(){
-    if(A.loginBusy)return;
-    var email=q($('lgEmail')&&$('lgEmail').value).trim().toLowerCase();
-    var password=q($('lgPassword')&&$('lgPassword').value);
-    var err=$('lerr2'),btn=$('authGo');
-    if(!email||email.indexOf('@')<1){err.textContent='أدخل بريدًا إلكترونيًا صحيحًا';err.classList.add('show');return;}
-    if(password.length<8){err.textContent='كلمة المرور يجب ألا تقل عن 8 أحرف';err.classList.add('show');return;}
-    A.loginBusy=true;busy(btn,true,'جارٍ الدخول...');
-    try{
-      await api('/api/app/auth/login',{method:'POST',body:{email:email,password:password}});
-      await loadBootstrap();
-      err.classList.remove('show');hide('pgLogin');showSystems();
-    }catch(e){err.textContent=humanError(e.message);err.classList.add('show');}
-    finally{A.loginBusy=false;busy(btn,false);}
-  };
+  doLogin=function(){ location.assign('/login'); };
 
   async function restoreSession(){
     try{var params=new URLSearchParams(location.search),resetToken=params.get('reset_token');if(resetToken){buildResetFormUI(resetToken);pg('pgLogin');document.body.classList.remove('auth-pending');return;}var st=await api('/api/app/auth/status');A.setupRequired=!!st.setup_required;if(A.setupRequired||params.get('setup')==='1'){buildSetupUI();pg('pgLogin');document.body.classList.remove('auth-pending');return;}var meErr=null;for(var attempt=0;attempt<8;attempt++){try{await api('/api/app/auth/me?ts='+Date.now());meErr=null;break;}catch(e){meErr=e;await new Promise(function(r){setTimeout(r,500+attempt*500);});}}if(meErr){try{var authSession=await api('/api/auth/session?ts='+Date.now());if(!authSession||!authSession.user)throw meErr;}catch(_e){throw meErr;}}await loadBootstrap();hide('pgLogin');var view=loadView();var cycles=A.data&&A.data.cycles||[];var preferred=cycles.find(function(c){return String(c.id)===String(cyclePref());})||latestCycle();if(view.screen==='month'){showMonthPicker();}else if(preferred){A.cycle=preferred;await loadCycleData();initDash(true);if(view.serviceTab)setTimeout(function(){openServices(view.serviceTab);},250);}else{initDash(true);}document.body.classList.remove('auth-pending');}
-    catch(e){if(A.setupRequired)buildSetupUI();else buildLoginUI();pg('pgLogin');document.body.classList.remove('auth-pending');setTimeout(function(){var x=$('lgEmail');if(x)x.focus();},60);}
+    catch(e){if(A.setupRequired){buildSetupUI();pg('pgLogin');document.body.classList.remove('auth-pending');}else{location.assign('/login');}}
   }
 
   doLogout=async function(){
@@ -147,7 +116,7 @@
     try{await api('/api/app/auth/logout',{method:'POST'});}catch(e){}
     A.data=null;A.permissions=[];A.roles=[];A.cycle=null;A.cycleData=null;A.criteriaCache={};A.evaluationIds={};A.evaluationStatus={};
     cu=null;evals={};allE=[];vis=[];CT={};CC={};CS={};
-    hide('pgDash');hide('pgMonth');buildLoginUI();pg('pgLogin');
+    location.assign('/login');
   };
 
   /* ---------- Bootstrap / month / cycle ---------- */
@@ -401,7 +370,6 @@
   async function svcPortal(b){var j=await api('/api/app/portal');A.portal=j;if(!j.employee){b.innerHTML='<div class="em-empty">هذا الحساب غير مربوط بموظف</div>';return;}var html='<div class="sec-head"><span class="sh-t">'+h(j.employee.full_name)+'</span><span class="sh-n">'+h(j.employee.job_titles&&j.employee.job_titles.name||'')+'</span></div>';html+=(j.evaluations||[]).map(function(e){var c=e.evaluation_cycles||{};return row('تقييم الأداء · '+(c.name||''),'الدرجة '+(e.final_score==null?'—':e.final_score)+' · '+(e.result_label||'')+(e.notes?' · '+e.notes:''),'');}).join('');html+=(j.targets||[]).map(function(t){var c=t.evaluation_cycles||{},pct=Number(t.target_amount)?Math.round(Number(t.achieved_amount)/Number(t.target_amount)*1000)/10:0;return row('الهدف البيعي · '+(c.name||''),'المحقق '+Number(t.achieved_amount).toLocaleString('en-US')+' من '+Number(t.target_amount).toLocaleString('en-US')+' · '+pct+'%','');}).join('');html+=(j.attendance||[]).map(function(a){var c=a.evaluation_cycles||{};return row('الحضور · '+(c.name||''),'الدرجة '+a.final_score+'/100'+(a.notes?' · '+a.notes:''),'');}).join('');try{var fm=await api('/api/app/employees/'+encodeURIComponent(j.employee.id)+'/forms');(fm.documents||[]).forEach(function(d){html+=row('نموذج إداري · '+(d.form_type||''),'رقم '+(d.document_no||'')+' · '+(d.status||''),'');});}catch(_e){}b.innerHTML=html||'<div class="em-empty">لا توجد نتائج منشورة بعد</div>';}
 
   /* ---------- Startup ---------- */
-  buildLoginUI();
   window.addEventListener('load',function(){restoreSession();});
 })();
 
