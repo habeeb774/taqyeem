@@ -3,7 +3,35 @@ import { z } from 'zod';
 
 import { pool } from '@/db';
 import { withNeonTransaction } from '@/lib/neon/admin';
-import { assertEmployeeAccess, jsonError, must, requireUser } from '@/server/context';
+import {
+  assertEmployeeAccess,
+  jsonError,
+  must,
+  requireUser,
+} from '@/server/context';
+
+type SalesTargetRow = {
+  id: string;
+  employee_id: string;
+  cycle_id: string;
+  target_amount: string | number;
+  achieved_amount: string | number;
+  branch_id: string | null;
+  department_id: string | null;
+  updated_at: string;
+};
+
+type ExistingTargetRow = {
+  id: string;
+  target_amount: string | number;
+};
+
+type EmployeeAssignmentRow = {
+  branch_id: string | null;
+  department_id: string | null;
+};
+
+type IdRow = { id: string };
 
 const saveTargetSchema = z.object({
   cycle_id: z.string().uuid(),
@@ -15,7 +43,10 @@ const saveTargetSchema = z.object({
 
 function errorResponse(error: unknown) {
   const result = jsonError(error);
-  return NextResponse.json({ ok: false, error: result.error }, { status: result.status });
+  return NextResponse.json(
+    { ok: false, error: result.error },
+    { status: result.status },
+  );
 }
 
 export async function GET(request: NextRequest) {
@@ -24,7 +55,7 @@ export async function GET(request: NextRequest) {
     must(context, 'targets.view');
 
     const cycleId = request.nextUrl.searchParams.get('cycle_id');
-    const result = await pool.query(
+    const result = await pool.query<SalesTargetRow>(
       `select t.*
        from public.sales_targets t
        join public.employees e on e.id=t.employee_id
@@ -35,8 +66,8 @@ export async function GET(request: NextRequest) {
       [context.organizationId, cycleId || null],
     );
 
-    const allowed = [];
-    for (const target of result.rows as any[]) {
+    const allowed: SalesTargetRow[] = [];
+    for (const target of result.rows) {
       try {
         await assertEmployeeAccess(context, String(target.employee_id));
         allowed.push(target);
@@ -59,21 +90,21 @@ export async function POST(request: NextRequest) {
     const value = saveTargetSchema.parse(await request.json());
     await assertEmployeeAccess(context, value.employee_id);
 
-    const existing = await pool.query(
+    const existing = await pool.query<ExistingTargetRow>(
       `select id,target_amount
        from public.sales_targets
        where cycle_id=$1::uuid and employee_id=$2::uuid`,
       [value.cycle_id, value.employee_id],
     );
-    const targetChanged = existing.rows[0]
-      && Number((existing.rows[0] as any).target_amount) !== value.target;
+    const targetChanged =
+      existing.rows[0] && Number(existing.rows[0].target_amount) !== value.target;
     if (targetChanged && String(value.reason || '').trim().length < 3) {
       throw new Error('target_change_reason_required');
     }
 
     let targetId = '';
     await withNeonTransaction(async (transaction) => {
-      const employee = await transaction.query(
+      const employee = await transaction.query<EmployeeAssignmentRow>(
         `select branch_id,department_id
          from public.employees
          where id=$1::uuid and organization_id=$2::uuid`,
@@ -81,7 +112,7 @@ export async function POST(request: NextRequest) {
       );
       if (!employee.rows[0]) throw new Error('INVALID_EMPLOYEE');
 
-      const saved = await transaction.query(
+      const saved = await transaction.query<IdRow>(
         `insert into public.sales_targets(
            organization_id,cycle_id,employee_id,branch_id,department_id,target_amount,
            achieved_amount,source,last_edit_reason,created_by,updated_by
