@@ -7,6 +7,17 @@ import { z } from 'zod';
 import { signIn } from '@/auth';
 import { pool } from '@/db';
 
+type CountRow = { count: number };
+
+type LoginUser = {
+  id: string;
+  name: string | null;
+  email: string;
+  employee_id: string | null;
+  organization_id: string | null;
+  active: boolean;
+};
+
 const loginSchema = z.object({
   email: z.string().email(),
   password: z.string().min(8).max(200),
@@ -30,7 +41,7 @@ function getClientIp(req: NextRequest) {
 async function isRateLimited(emailHash: string, ip: string | null) {
   try {
     const result = ip
-      ? await pool.query(
+      ? await pool.query<CountRow>(
           `
             select count(*)::int count
             from public.login_attempts
@@ -41,7 +52,7 @@ async function isRateLimited(emailHash: string, ip: string | null) {
           `,
           [emailHash, ip],
         )
-      : await pool.query(
+      : await pool.query<CountRow>(
           `
             select count(*)::int count
             from public.login_attempts
@@ -52,7 +63,7 @@ async function isRateLimited(emailHash: string, ip: string | null) {
           [emailHash],
         );
 
-    return Number((result.rows[0] as any)?.count || 0) >= 5;
+    return Number(result.rows[0]?.count || 0) >= 5;
   } catch {
     // Login-attempt logging must not block authentication.
     return false;
@@ -60,7 +71,7 @@ async function isRateLimited(emailHash: string, ip: string | null) {
 }
 
 async function findUserByEmail(email: string) {
-  const result = await pool.query(
+  const result = await pool.query<LoginUser>(
     `
       select id, name, email, employee_id, organization_id, active
       from public.users
@@ -70,13 +81,13 @@ async function findUserByEmail(email: string) {
     [email],
   );
 
-  return result.rows[0] as any;
+  return result.rows[0] || null;
 }
 
 async function recordSuccessfulLogin(
   emailHash: string,
   ip: string | null,
-  user: any,
+  user: LoginUser,
   userAgent: string | null,
 ) {
   try {
@@ -160,7 +171,7 @@ async function createAppSession(userId: string) {
   return appToken;
 }
 
-function createLoginResponse(user: any, sessionToken: string) {
+function createLoginResponse(user: LoginUser, sessionToken: string) {
   const response = NextResponse.json(
     {
       ok: true,
@@ -217,12 +228,17 @@ export async function POST(req: NextRequest) {
     const appToken = await createAppSession(user.id);
 
     return createLoginResponse(user, appToken);
-  } catch (error: any) {
+  } catch (error) {
     await recordFailedLogin(emailHash, ip, userAgent);
 
-    const accountNotReady = error?.message === 'ACCOUNT_NOT_READY';
+    const errorType =
+      error && typeof error === 'object' && 'type' in error
+        ? String(error.type)
+        : null;
+    const accountNotReady =
+      error instanceof Error && error.message === 'ACCOUNT_NOT_READY';
     const authFailure =
-      error instanceof AuthError || error?.type === 'CredentialsSignin';
+      error instanceof AuthError || errorType === 'CredentialsSignin';
 
     return NextResponse.json(
       {
