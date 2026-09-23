@@ -3,6 +3,75 @@ import { pool } from '@/db';
 import { allVisibleEmployeeIds } from '@/db/queries/security';
 import { jsonError, must, requireUser } from '@/server/context';
 
+type ReportCell = string | number | null;
+type ReportRow = Record<string, ReportCell>;
+
+type PerformanceReportRow = ReportRow & {
+  employee_id: string;
+  employee_number: string | null;
+  full_name: string;
+  year: number;
+  month: number;
+  final_score: number | null;
+  result_label: string | null;
+  status: string;
+};
+
+type TargetReportRow = ReportRow & {
+  employee_id: string;
+  employee_number: string | null;
+  full_name: string;
+  year: number;
+  month: number;
+  target_amount: number;
+  achieved_amount: number;
+  achievement_percentage: number;
+};
+
+type AttendanceReportRow = ReportRow & {
+  employee_id: string;
+  employee_number: string | null;
+  full_name: string;
+  year: number;
+  month: number;
+  base_score: number;
+  final_score: number;
+  status: string;
+};
+
+const performanceColumns = [
+  'employee_id',
+  'employee_number',
+  'full_name',
+  'year',
+  'month',
+  'final_score',
+  'result_label',
+  'status',
+];
+
+const targetColumns = [
+  'employee_id',
+  'employee_number',
+  'full_name',
+  'year',
+  'month',
+  'target_amount',
+  'achieved_amount',
+  'achievement_percentage',
+];
+
+const attendanceColumns = [
+  'employee_id',
+  'employee_number',
+  'full_name',
+  'year',
+  'month',
+  'base_score',
+  'final_score',
+  'status',
+];
+
 function readFilters(req: NextRequest) {
   const url = new URL(req.url);
   const year = url.searchParams.get('year');
@@ -22,7 +91,7 @@ function queryPerformance(
   year: number | null,
   month: number | null,
 ) {
-  return pool.query(
+  return pool.query<PerformanceReportRow>(
     `
       select
         e.employee_id,
@@ -50,7 +119,7 @@ function queryTargets(
   year: number | null,
   month: number | null,
 ) {
-  return pool.query(
+  return pool.query<TargetReportRow>(
     `
       select
         t.employee_id,
@@ -82,7 +151,7 @@ function queryAttendance(
   year: number | null,
   month: number | null,
 ) {
-  return pool.query(
+  return pool.query<AttendanceReportRow>(
     `
       select
         a.employee_id,
@@ -121,8 +190,7 @@ function cell(value: unknown) {
   return `<Cell><Data ss:Type="String">${xmlEscape(value)}</Data></Cell>`;
 }
 
-function worksheet(name: string, rows: any[]) {
-  const columns = [...new Set(rows.flatMap((row) => Object.keys(row)))];
+function worksheet(name: string, rows: ReportRow[], columns: string[]) {
   const header = `<Row>${columns.map(cell).join('')}</Row>`;
   const body = rows
     .map((row) => `<Row>${columns.map((column) => cell(row[column])).join('')}</Row>`)
@@ -132,9 +200,9 @@ function worksheet(name: string, rows: any[]) {
 }
 
 function createWorkbook(
-  performance: any[],
-  targets: any[],
-  attendance: any[],
+  performance: PerformanceReportRow[],
+  targets: TargetReportRow[],
+  attendance: AttendanceReportRow[],
   year: string | null,
   month: string | null,
 ) {
@@ -143,9 +211,9 @@ function createWorkbook(
  xmlns:o="urn:schemas-microsoft-com:office:office"
  xmlns:x="urn:schemas-microsoft-com:office:excel"
  xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
- ${worksheet('الأداء', performance)}
- ${worksheet('الأهداف', targets)}
- ${worksheet('الحضور', attendance)}
+ ${worksheet('الأداء', performance, performanceColumns)}
+ ${worksheet('الأهداف', targets, targetColumns)}
+ ${worksheet('الحضور', attendance, attendanceColumns)}
 </Workbook>`;
 
   return new NextResponse(xml, {
