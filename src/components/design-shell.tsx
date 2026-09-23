@@ -28,7 +28,7 @@ export function DesignShell({ children }: { children: ReactNode }) {
     <div className="ds-shell">
       <header className="unified-topbar">
         <div className="unified-topbar__brand">
-          <span className="unified-topbar__mark">ت</span>
+          <span className="unified-topbar__mark" aria-label="شعار السويد" />
           <span>منصة الأنظمة الإدارية</span>
         </div>
 

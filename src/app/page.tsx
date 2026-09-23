@@ -94,21 +94,14 @@ export default async function Home() {
               height: 36,
               borderRadius: 12,
               border: "1px solid rgba(255,255,255,.38)",
-              background: "rgba(255,255,255,.13)",
+              background: "rgba(255,255,255,.13) url('/brand-logo.png') center/23px 29px no-repeat",
               display: "grid",
               placeItems: "center",
+              filter: "brightness(0) invert(1)",
             }}
+            aria-label="شعار السويد"
           >
-            <img
-              src="/brand-logo.png"
-              alt="شعار السويد"
-              style={{
-                width: 23,
-                height: 29,
-                objectFit: "contain",
-                filter: "brightness(0) invert(1)",
-              }}
-            />
+            <span style={{ opacity: 0 }}>ت</span>
           </div>
           <div>
             <p style={{ margin: 0, fontSize: 15, fontWeight: 600 }}>
