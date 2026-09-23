@@ -40,6 +40,23 @@ const styles = `
     text-align: left;
   }
   .input:focus { border-color: #2445d9; box-shadow: 0 0 0 3px #2445d918; }
+  .remember {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 8px;
+    margin: 14px 0 8px;
+    color: #4d5872;
+    font-size: 13px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .remember input {
+    width: 16px;
+    height: 16px;
+    accent-color: #2445d9;
+    cursor: pointer;
+  }
   .hint { font-size: 12px; color: #8791a6; text-align: center; margin: 22px 0; }
   .btn {
     width: 100%;
@@ -79,6 +96,7 @@ const script = `
         body: JSON.stringify({
           email: document.getElementById('email').value.trim(),
           password: document.getElementById('password').value,
+          remember: document.getElementById('remember').checked,
         }),
       });
 
@@ -121,6 +139,10 @@ const html = `<!doctype html>
       <input class="input" id="email" type="email" autocomplete="email" required placeholder="name@company.com">
       <label class="field" for="password">كلمة المرور</label>
       <input class="input" id="password" type="password" autocomplete="current-password" required placeholder="••••••••">
+      <label class="remember" for="remember">
+        <input id="remember" type="checkbox">
+        <span>تذكرني</span>
+      </label>
       <p class="hint">استخدم البريد الإلكتروني وكلمة المرور الخاصة بحسابك</p>
       <button class="btn" id="submit" type="submit">دخول</button>
       <div class="err" id="error" role="alert"></div>

@@ -21,6 +21,7 @@ type LoginUser = {
 const loginSchema = z.object({
   email: z.string().email(),
   password: z.string().min(8).max(200),
+  remember: z.boolean().optional().default(false),
 });
 
 function invalidCredentials(status = 400) {
@@ -156,22 +157,26 @@ async function recordFailedLogin(
   }
 }
 
-async function createAppSession(userId: string) {
+async function createAppSession(userId: string, remember: boolean) {
   const appToken = randomBytes(32).toString('hex');
 
   await pool.query('delete from public.sessions where expires <= now()');
   await pool.query(
     `
       insert into public.sessions(session_token, user_id, expires)
-      values($1, $2::uuid, now() + interval '30 days')
+      values($1, $2::uuid, now() + ($3::int * interval '1 second'))
     `,
-    [appToken, userId],
+    [appToken, userId, remember ? 60 * 60 * 24 * 30 : 60 * 60 * 8],
   );
 
   return appToken;
 }
 
-function createLoginResponse(user: LoginUser, sessionToken: string) {
+function createLoginResponse(
+  user: LoginUser,
+  sessionToken: string,
+  remember: boolean,
+) {
   const response = NextResponse.json(
     {
       ok: true,
@@ -190,7 +195,7 @@ function createLoginResponse(user: LoginUser, sessionToken: string) {
     secure: true,
     sameSite: 'lax',
     path: '/',
-    maxAge: 60 * 60 * 24 * 30,
+    ...(remember ? { maxAge: 60 * 60 * 24 * 30 } : {}),
   });
 
   return response;
@@ -202,6 +207,7 @@ export async function POST(req: NextRequest) {
 
   const email = parsed.data.email.trim().toLowerCase();
   const password = parsed.data.password;
+  const remember = parsed.data.remember;
   const emailHash = createHash('sha256').update(email).digest('hex');
   const ip = getClientIp(req);
   const userAgent = req.headers.get('user-agent');
@@ -225,9 +231,9 @@ export async function POST(req: NextRequest) {
     }
 
     await recordSuccessfulLogin(emailHash, ip, user, userAgent);
-    const appToken = await createAppSession(user.id);
+    const appToken = await createAppSession(user.id, remember);
 
-    return createLoginResponse(user, appToken);
+    return createLoginResponse(user, appToken, remember);
   } catch (error) {
     await recordFailedLogin(emailHash, ip, userAgent);
 
