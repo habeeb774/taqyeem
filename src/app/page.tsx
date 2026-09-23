@@ -22,7 +22,9 @@ export default async function Home() {
     <main dir="rtl" style={{ minHeight: '100vh', background: '#fbfcfe', color: '#0d0d0d', fontFamily: 'var(--app-font)' }}>
       <header style={{ height: 64, background: '#173BD1', color: '#fff', display: 'flex', alignItems: 'center', padding: '0 34px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{ width: 36, height: 36, borderRadius: 12, border: '1px solid rgba(255,255,255,.38)', background: 'rgba(255,255,255,.13)', display: 'grid', placeItems: 'center', fontSize: 20, fontWeight: 700 }}>ت</div>
+          <div style={{ width: 36, height: 36, borderRadius: 12, border: '1px solid rgba(255,255,255,.38)', background: 'rgba(255,255,255,.13)', display: 'grid', placeItems: 'center' }}>
+            <img src="/brand-logo.png" alt="شعار السويد" style={{ width: 23, height: 29, objectFit: 'contain', filter: 'brightness(0) invert(1)' }} />
+          </div>
           <div><p style={{ margin: 0, fontSize: 15, fontWeight: 600 }}>منصة تقييم</p><p style={{ margin: 0, color: 'rgba(255,255,255,.7)', fontSize: 11 }}>أنظمة الموارد والتشغيل</p></div>
         </div>
       </header>
