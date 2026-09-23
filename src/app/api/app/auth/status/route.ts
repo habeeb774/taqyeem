@@ -2,10 +2,12 @@ import { NextResponse } from 'next/server';
 
 import { pool } from '@/db';
 
+type CountRow = { count: number };
+
 export const dynamic = 'force-dynamic';
 
 async function hasConfiguredActiveUser() {
-  const result = await pool.query(
+  const result = await pool.query<CountRow>(
     `
       select count(*)::int count
       from public.users
@@ -15,7 +17,7 @@ async function hasConfiguredActiveUser() {
     `,
   );
 
-  return Number((result.rows[0] as any)?.count || 0) > 0;
+  return Number(result.rows[0]?.count || 0) > 0;
 }
 
 export async function GET() {
@@ -26,9 +28,11 @@ export async function GET() {
       { ok: true, setup_required: !configured },
       { headers: { 'Cache-Control': 'no-store' } },
     );
-  } catch (error: any) {
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'STATUS_FAILED';
+
     return NextResponse.json(
-      { ok: false, error: String(error?.message || 'STATUS_FAILED') },
+      { ok: false, error: message },
       { status: 500 },
     );
   }

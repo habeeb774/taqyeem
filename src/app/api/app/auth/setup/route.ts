@@ -5,6 +5,9 @@ import { z } from 'zod';
 import { pool } from '@/db';
 import { withNeonTransaction } from '@/lib/neon/admin';
 
+type CountRow = { count: number };
+type IdRow = { id: string };
+
 const setupSchema = z.object({
   full_name: z.string().trim().min(2).max(120),
   email: z.string().trim().email(),
@@ -12,7 +15,7 @@ const setupSchema = z.object({
 });
 
 async function setupAlreadyCompleted() {
-  const result = await pool.query(
+  const result = await pool.query<CountRow>(
     `
       select count(*)::int count
       from public.users
@@ -22,12 +25,12 @@ async function setupAlreadyCompleted() {
     `,
   );
 
-  return Number((result.rows[0] as any)?.count || 0) > 0;
+  return Number(result.rows[0]?.count || 0) > 0;
 }
 
 async function getSetupDependencies() {
   const [organization, role] = await Promise.all([
-    pool.query(
+    pool.query<IdRow>(
       `
         select id
         from public.organizations
@@ -36,7 +39,7 @@ async function getSetupDependencies() {
         limit 1
       `,
     ),
-    pool.query(
+    pool.query<IdRow>(
       `
         select id
         from public.roles
@@ -53,8 +56,8 @@ async function getSetupDependencies() {
   }
 
   return {
-    organizationId: String((organization.rows[0] as any).id),
-    roleId: String((role.rows[0] as any).id),
+    organizationId: String(organization.rows[0].id),
+    roleId: String(role.rows[0].id),
   };
 }
 
@@ -116,7 +119,7 @@ export async function POST(req: NextRequest) {
         [userId, organizationId, parsed.data.full_name, email],
       );
 
-      const userRole = await tx.query(
+      const userRole = await tx.query<IdRow>(
         `
           insert into public.user_roles(
             user_id,
