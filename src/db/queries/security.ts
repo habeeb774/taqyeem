@@ -41,25 +41,79 @@ export async function loadSecurityContext(userId:string):Promise<SecurityContext
 export function can(c:SecurityContext,code:string){return c.permissions.includes(code);}
 export function must(c:SecurityContext,code:string){if(!can(c,code))throw Object.assign(new Error('FORBIDDEN'),{status:403});}
 
+function isElevatedOrganizationRole(c: SecurityContext) {
+  return c.roles.some((role) => ['super_admin', 'hr_admin', 'auditor'].includes(role.code));
+}
+
+function isManagementRole(c: SecurityContext) {
+  return c.roles.some((role) => ['branch_manager', 'department_manager', 'supervisor', 'evaluator'].includes(role.code));
+}
+
+function hasDirectoryAuthority(c: SecurityContext) {
+  if (isElevatedOrganizationRole(c) || isManagementRole(c)) return true;
+  return c.permissions.some((code) => [
+    'employees.view',
+    'employees.create',
+    'employees.update',
+    'evaluations.view',
+    'evaluations.create',
+    'evaluations.edit',
+    'evaluations.submit',
+    'attendance.view',
+    'attendance.manage',
+    'targets.manage',
+    'forms.manage'
+  ].includes(code));
+}
+
 function scopeParts(c:SecurityContext){
+  const elevated = isElevatedOrganizationRole(c);
+  const managerMustStayScoped = isManagementRole(c) && !elevated;
+  const scopeAllowed = hasDirectoryAuthority(c);
   return {
-    org:c.scopes.some(s=>s.type==='organization'),
-    branches:c.scopes.filter(s=>s.type==='branch'&&s.id).map(s=>s.id!),
-    departments:c.scopes.filter(s=>s.type==='department'&&s.id).map(s=>s.id!),
-    assigned:c.scopes.some(s=>s.type==='assigned_employees')
+    org:scopeAllowed && !managerMustStayScoped && c.scopes.some(s=>s.type==='organization'),
+    branches:scopeAllowed ? c.scopes.filter(s=>s.type==='branch'&&s.id).map(s=>s.id!) : [],
+    departments:scopeAllowed ? c.scopes.filter(s=>s.type==='department'&&s.id).map(s=>s.id!) : [],
+    assigned:scopeAllowed && c.scopes.some(s=>s.type==='assigned_employees'),
+    excludeSelfFromDirectory: managerMustStayScoped
   };
 }
 
+const employeeScopeCte = `
+  with recursive scoped_departments(id) as (
+    select unnest($4::uuid[])
+    union
+    select d.id
+    from public.departments d
+    join scoped_departments sd on d.parent_department_id=sd.id
+    where d.organization_id=$2::uuid and d.deleted_at is null and d.active=true
+  ), subordinate_employees(id) as (
+    select e.id
+    from public.employees e
+    where e.organization_id=$2::uuid and e.deleted_at is null
+      and $7::uuid is not null
+      and (e.id=$7::uuid or e.manager_id=$7::uuid or e.supervisor_id=$7::uuid)
+    union
+    select child.id
+    from public.employees child
+    join subordinate_employees parent on child.manager_id=parent.id or child.supervisor_id=parent.id
+    where child.organization_id=$2::uuid and child.deleted_at is null
+  )`;
+
+const employeeScopeWhere = `
+  ($3::boolean or
+    (cardinality($5::uuid[])>0 and e.branch_id=any($5::uuid[])) or
+    exists(select 1 from scoped_departments sd where sd.id=e.department_id) or
+    ($6::boolean and exists(select 1 from public.evaluation_assignments a where a.employee_id=e.id and a.evaluator_user_id=$8::uuid)) or
+    exists(select 1 from subordinate_employees se where se.id=e.id))`;
+
 export async function canAccessEmployee(c:SecurityContext,employeeId:string){
-  const s=scopeParts(c); if(s.org)return true;
-  const r=await pool.query(`select exists(
-    select 1 from public.employees e
-    where e.id=$1::uuid and e.organization_id=$2::uuid and e.deleted_at is null and (
-      (cardinality($3::uuid[])>0 and e.branch_id=any($3::uuid[])) or
-      (cardinality($4::uuid[])>0 and e.department_id=any($4::uuid[])) or
-      ($5::boolean and exists(select 1 from public.evaluation_assignments a where a.employee_id=e.id and a.evaluator_user_id=$6::uuid)) or
-      ($7::uuid is not null and (e.id=$7::uuid or e.manager_id=$7::uuid or e.supervisor_id=$7::uuid))
-    )) ok`,[employeeId,c.organizationId,s.branches,s.departments,s.assigned,c.user.id,c.user.employeeId]);
+  const s=scopeParts(c);
+  const r=await pool.query(`${employeeScopeCte}
+    select exists(
+      select 1 from public.employees e
+      where e.id=$1::uuid and e.organization_id=$2::uuid and e.deleted_at is null and ${employeeScopeWhere}
+    ) ok`,[employeeId,c.organizationId,s.org,s.departments,s.branches,s.assigned,c.user.employeeId,c.user.id]);
   return Boolean((r.rows[0] as any)?.ok);
 }
 
@@ -67,18 +121,16 @@ export async function assertEmployeeAccess(c:SecurityContext,employeeId:string){
 
 export async function visibleEmployees(c:SecurityContext,{limit=100,offset=0,search=''}:{limit?:number;offset?:number;search?:string}={}){
   const s=scopeParts(c),lim=Math.max(1,Math.min(200,limit)),off=Math.max(0,offset),term=search.trim();
-  const q=await pool.query(`
+  const q=await pool.query(`${employeeScopeCte}
     select e.id,e.employee_number,e.full_name,e.email,e.phone,e.status,e.job_title_id,e.manager_id,e.supervisor_id,e.branch_id,e.department_id,e.section_id,j.name job_title_name,b.name branch_name,d.name department_name,m.full_name manager_name,
            count(*) over()::int total_count
     from public.employees e left join public.job_titles j on j.id=e.job_title_id left join public.branches b on b.id=e.branch_id left join public.departments d on d.id=e.department_id left join public.employees m on m.id=e.manager_id
-    where e.organization_id=$1::uuid and e.deleted_at is null
-      and ($2::boolean or
-        (cardinality($3::uuid[])>0 and e.branch_id=any($3::uuid[])) or
-        (cardinality($4::uuid[])>0 and e.department_id=any($4::uuid[])) or
-        ($5::boolean and exists(select 1 from public.evaluation_assignments a where a.employee_id=e.id and a.evaluator_user_id=$6::uuid)) or
-        ($7::uuid is not null and (e.id=$7::uuid or e.manager_id=$7::uuid or e.supervisor_id=$7::uuid)))
-      and ($8='' or e.full_name ilike '%'||$8||'%' or coalesce(e.employee_number,'') ilike '%'||$8||'%' or coalesce(j.name,'') ilike '%'||$8||'%')
-    order by e.full_name limit $9 offset $10`,[c.organizationId,s.org,s.branches,s.departments,s.assigned,c.user.id,c.user.employeeId,term,lim,off]);
+    where e.organization_id=$2::uuid and e.deleted_at is null
+      and ($1::uuid is null or e.id is not null)
+      and ${employeeScopeWhere}
+      and ($9::boolean=false or $7::uuid is null or e.id<>$7::uuid)
+      and ($10='' or e.full_name ilike '%'||$10||'%' or coalesce(e.employee_number,'') ilike '%'||$10||'%' or coalesce(j.name,'') ilike '%'||$10||'%')
+    order by e.full_name limit $11 offset $12`,[null,c.organizationId,s.org,s.departments,s.branches,s.assigned,c.user.employeeId,c.user.id,s.excludeSelfFromDirectory,term,lim,off]);
   const total=Number((q.rows[0] as any)?.total_count||0);
   return {rows:q.rows.map((x:any)=>({...x,job_titles:x.job_title_name?{name:x.job_title_name}:null,total_count:undefined})),total,limit:lim,offset:off,hasMore:off+q.rows.length<total};
 }
