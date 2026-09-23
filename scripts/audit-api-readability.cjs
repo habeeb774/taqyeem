@@ -13,9 +13,6 @@ const legacyLongLineRoutes = new Set([
   'bootstrap/route.ts',
   'criteria/route.ts',
   'employees/route.ts',
-  'exclusions/route.ts',
-  'form-data/route.ts',
-  'portal/route.ts',
   'reports/route.ts',
 ]);
 
