@@ -23,13 +23,44 @@ const attendancePayloadSchema = z.object({
   ),
 });
 
+type AttendancePayload = z.infer<typeof attendancePayloadSchema>;
+
+type AttendanceEvaluationRow = {
+  id: string;
+  employee_id: string;
+  cycle_id: string;
+  base_score: string | number;
+  final_score: string | number;
+  notes: string | null;
+  status: string;
+  evaluator_user_id: string | null;
+  updated_at: string;
+};
+
+type AttendanceEntryRow = {
+  id: string;
+  attendance_evaluation_id: string;
+  penalty_type_id: string;
+  occurrences: number;
+  deduction_points_snapshot: string | number;
+  note: string | null;
+};
+
+type PenaltyTypeRow = { deduction_points: string | number };
+
+type IdRow = { id: string };
+
+type PreparedAttendanceEntry = AttendancePayload['entries'][number] & {
+  points: number;
+};
+
 export async function GET(req: NextRequest) {
   try {
     const context = await requireUser();
     must(context, 'attendance.view');
 
     const cycleId = new URL(req.url).searchParams.get('cycle_id');
-    const result = await pool.query(
+    const result = await pool.query<AttendanceEvaluationRow>(
       `
         select a.*
         from public.attendance_evaluations a
@@ -41,8 +72,8 @@ export async function GET(req: NextRequest) {
       [context.organizationId, cycleId || null],
     );
 
-    const attendance = [];
-    for (const row of result.rows as any[]) {
+    const attendance: AttendanceEvaluationRow[] = [];
+    for (const row of result.rows) {
       try {
         await assertEmployeeAccess(context, String(row.employee_id));
         attendance.push(row);
@@ -51,10 +82,10 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    const attendanceIds = attendance.map((row: any) => row.id);
+    const attendanceIds = attendance.map((row) => row.id);
     const entries = attendanceIds.length
       ? (
-          await pool.query(
+          await pool.query<AttendanceEntryRow>(
             `
               select
                 id,
@@ -92,10 +123,10 @@ export async function POST(req: NextRequest) {
     let attendanceId = '';
     await withNeonTransaction(async (tx) => {
       let totalDeduction = 0;
-      const preparedEntries = [];
+      const preparedEntries: PreparedAttendanceEntry[] = [];
 
       for (const entry of payload.entries) {
-        const penaltyType = await tx.query(
+        const penaltyType = await tx.query<PenaltyTypeRow>(
           `
             select deduction_points
             from public.attendance_penalty_types
@@ -114,7 +145,7 @@ export async function POST(req: NextRequest) {
       }
 
       const finalScore = Math.max(0, 100 - totalDeduction);
-      const savedAttendance = await tx.query(
+      const savedAttendance = await tx.query<IdRow>(
         `
           insert into public.attendance_evaluations(
             cycle_id,
