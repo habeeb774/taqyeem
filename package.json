@@ -19,9 +19,10 @@
     "prebuild": "npm run audit:quality && node scripts/cleanup-legacy.mjs",
     "audit:api-security": "node scripts/audit-api-security.cjs",
     "audit:client-storage": "node scripts/audit-client-storage.cjs",
-    "audit:quality": "npm run audit:api-security && npm run audit:api-readability && npm run audit:client-storage && npm run audit:source-readability",
+    "audit:quality": "npm run audit:api-security && npm run audit:api-readability && npm run audit:client-storage && npm run audit:source-readability && npm run audit:client-server-boundary",
     "audit:api-readability": "node scripts/audit-api-readability.cjs",
-    "audit:source-readability": "node scripts/audit-source-readability.cjs"
+    "audit:source-readability": "node scripts/audit-source-readability.cjs",
+    "audit:client-server-boundary": "node scripts/audit-client-server-boundary.cjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1137.0",
