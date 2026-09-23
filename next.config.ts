@@ -21,5 +21,11 @@ const nextConfig:NextConfig={
       {source:'/full-services.js',headers:[...securityHeaders,{key:'Cache-Control',value:'no-store, no-cache, must-revalidate, max-age=0'}]},
     ];
   },
+  async redirects(){
+    return [
+      {source:'/forms.html',destination:'/forms',permanent:true},
+      {source:'/legacy.html',destination:'/assessment',permanent:true},
+    ];
+  },
 };
 export default nextConfig;
