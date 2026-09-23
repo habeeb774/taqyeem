@@ -6,12 +6,6 @@ const maxLineLength = 420;
 // Temporary baseline for legacy route files that still need progressive cleanup.
 // New routes, and routes removed from this list after cleanup, must stay readable.
 const legacyLongLineRoutes = new Set([
-  'admin/route.ts',
-  'auth/login/route.ts',
-  'auth/status/route.ts',
-  'criteria/route.ts',
-  'employees/route.ts',
-  'reports/route.ts',
 ]);
 
 function walk(dir){
