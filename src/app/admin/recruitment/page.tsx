@@ -39,6 +39,9 @@ export default async function RecruitmentAdminPage() {
             <a href="/admin/recruitment/applications" style={{ color: '#fff', fontSize: 13, textDecoration: 'none' }}>
               المتقدمون
             </a>
+            <a href="/admin/recruitment/settings" style={{ color: '#fff', fontSize: 13, textDecoration: 'none' }}>
+              إعدادات الصفحة العامة
+            </a>
             <a href="/" style={{ color: 'rgba(255,255,255,.75)', fontSize: 13, textDecoration: 'none' }}>
               الصفحة الرئيسية
             </a>

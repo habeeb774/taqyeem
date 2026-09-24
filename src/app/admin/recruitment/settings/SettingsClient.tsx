@@ -1,0 +1,180 @@
+"use client";
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
+
+type Settings = {
+  heroTitle: string;
+  aboutParagraphs: string[];
+  benefits: string[];
+  storeUrl: string | null;
+};
+
+export default function SettingsClient() {
+  const [settings, setSettings] = useState<Settings | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    fetch('/api/app/recruitment/settings')
+      .then((r) => r.json())
+      .then((data) => {
+        if (!data.ok) throw new Error(data.error?.message || 'تعذر تحميل الإعدادات');
+        setSettings(data.settings);
+      })
+      .catch((e) => setError(e.message))
+      .finally(() => setLoading(false));
+  }, []);
+
+  function updateParagraph(index: number, value: string) {
+    if (!settings) return;
+    const next = [...settings.aboutParagraphs];
+    next[index] = value;
+    setSettings({ ...settings, aboutParagraphs: next });
+  }
+
+  function addParagraph() {
+    if (!settings) return;
+    setSettings({ ...settings, aboutParagraphs: [...settings.aboutParagraphs, ''] });
+  }
+
+  function removeParagraph(index: number) {
+    if (!settings) return;
+    setSettings({ ...settings, aboutParagraphs: settings.aboutParagraphs.filter((_, i) => i !== index) });
+  }
+
+  function updateBenefit(index: number, value: string) {
+    if (!settings) return;
+    const next = [...settings.benefits];
+    next[index] = value;
+    setSettings({ ...settings, benefits: next });
+  }
+
+  function addBenefit() {
+    if (!settings) return;
+    setSettings({ ...settings, benefits: [...settings.benefits, ''] });
+  }
+
+  function removeBenefit(index: number) {
+    if (!settings) return;
+    setSettings({ ...settings, benefits: settings.benefits.filter((_, i) => i !== index) });
+  }
+
+  async function save() {
+    if (!settings) return;
+    setSaving(true);
+    setError('');
+    setSaved(false);
+    try {
+      const payload = {
+        heroTitle: settings.heroTitle,
+        aboutParagraphs: settings.aboutParagraphs.map((p) => p.trim()).filter(Boolean),
+        benefits: settings.benefits.map((b) => b.trim()).filter(Boolean),
+        storeUrl: settings.storeUrl?.trim() || null,
+      };
+      const res = await fetch('/api/app/recruitment/settings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.error?.message || 'تعذر الحفظ');
+      setSettings(data.settings);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <main dir="rtl" style={{ minHeight: '100vh', background: '#fbfcfe', color: '#0d0d0d', fontFamily: 'var(--app-font)' }}>
+      <header style={{ background: '#173BD1', color: '#fff', padding: '24px 34px' }}>
+        <div style={{ maxWidth: 900, margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <p style={{ margin: '0 0 4px', fontSize: 13, opacity: 0.8 }}>لوحة التوظيف</p>
+            <h1 style={{ margin: 0, fontSize: 22, fontWeight: 500 }}>إعدادات صفحة الوظائف العامة</h1>
+          </div>
+          <nav style={{ display: 'flex', gap: 10 }}>
+            <Link href="/admin/recruitment" style={{ color: 'rgba(255,255,255,.75)', fontSize: 13, textDecoration: 'none' }}>نظرة عامة</Link>
+            <Link href="/admin/recruitment/jobs" style={{ color: 'rgba(255,255,255,.75)', fontSize: 13, textDecoration: 'none' }}>الوظائف</Link>
+          </nav>
+        </div>
+      </header>
+
+      <section style={{ maxWidth: 900, margin: '0 auto', padding: '28px 34px 60px' }}>
+        {loading ? (
+          <p style={{ color: '#888' }}>جارٍ التحميل...</p>
+        ) : !settings ? (
+          <p style={{ color: '#d14343' }}>{error || 'تعذر تحميل الإعدادات'}</p>
+        ) : (
+          <>
+            {error && <p style={{ color: '#d14343', fontSize: 12 }}>{error}</p>}
+            {saved && <p style={{ color: '#169b62', fontSize: 12 }}>تم الحفظ بنجاح.</p>}
+
+            <div style={{ background: '#fff', border: '1px solid #e0e0e0', borderRadius: 16, padding: 20, marginBottom: 16 }}>
+              <h2 style={{ margin: '0 0 14px', fontSize: 15, fontWeight: 500 }}>العنوان الرئيسي وروابط المتجر</h2>
+              <Field label="عنوان الصفحة (مثال: وظائف السويد)">
+                <input value={settings.heroTitle} onChange={(e) => setSettings({ ...settings, heroTitle: e.target.value })} style={inputStyle} />
+              </Field>
+              <Field label="رابط العودة للمتجر (اختياري)">
+                <input
+                  placeholder="https://..."
+                  value={settings.storeUrl || ''}
+                  onChange={(e) => setSettings({ ...settings, storeUrl: e.target.value })}
+                  style={inputStyle}
+                />
+              </Field>
+            </div>
+
+            <div style={{ background: '#fff', border: '1px solid #e0e0e0', borderRadius: 16, padding: 20, marginBottom: 16 }}>
+              <h2 style={{ margin: '0 0 14px', fontSize: 15, fontWeight: 500 }}>تعريف الشركة</h2>
+              <div style={{ display: 'grid', gap: 10 }}>
+                {settings.aboutParagraphs.map((p, i) => (
+                  <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+                    <textarea rows={3} value={p} onChange={(e) => updateParagraph(i, e.target.value)} style={{ ...inputStyle, flex: 1 }} />
+                    <button onClick={() => removeParagraph(i)} style={removeBtnStyle}>حذف</button>
+                  </div>
+                ))}
+              </div>
+              <button onClick={addParagraph} style={addBtnStyle}>+ إضافة فقرة</button>
+            </div>
+
+            <div style={{ background: '#fff', border: '1px solid #e0e0e0', borderRadius: 16, padding: 20, marginBottom: 16 }}>
+              <h2 style={{ margin: '0 0 14px', fontSize: 15, fontWeight: 500 }}>المزايا الوظيفية</h2>
+              <div style={{ display: 'grid', gap: 8 }}>
+                {settings.benefits.map((b, i) => (
+                  <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <input value={b} onChange={(e) => updateBenefit(i, e.target.value)} style={{ ...inputStyle, flex: 1 }} />
+                    <button onClick={() => removeBenefit(i)} style={removeBtnStyle}>حذف</button>
+                  </div>
+                ))}
+              </div>
+              <button onClick={addBenefit} style={addBtnStyle}>+ إضافة ميزة</button>
+            </div>
+
+            <button onClick={save} disabled={saving} style={{ border: 0, borderRadius: 10, padding: '11px 22px', background: '#173BD1', color: '#fff', fontSize: 13, fontWeight: 500, cursor: 'pointer', opacity: saving ? 0.6 : 1 }}>
+              {saving ? 'جارٍ الحفظ...' : 'حفظ التغييرات'}
+            </button>
+          </>
+        )}
+      </section>
+    </main>
+  );
+}
+
+const inputStyle: React.CSSProperties = { width: '100%', border: '1px solid #e0e0e0', borderRadius: 10, padding: '9px 11px', fontSize: 13, fontFamily: 'inherit', boxSizing: 'border-box' };
+const removeBtnStyle: React.CSSProperties = { border: '1px solid #ffd4d4', background: '#fff1f1', color: '#d14343', borderRadius: 8, padding: '9px 12px', fontSize: 12, cursor: 'pointer', whiteSpace: 'nowrap' };
+const addBtnStyle: React.CSSProperties = { marginTop: 10, border: '1px solid #e0e0e0', background: '#fff', borderRadius: 8, padding: '8px 14px', fontSize: 12, cursor: 'pointer' };
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div style={{ marginBottom: 12, display: 'flex', flexDirection: 'column', gap: 5 }}>
+      <label style={{ fontSize: 11, color: '#888', fontWeight: 400 }}>{label}</label>
+      {children}
+    </div>
+  );
+}

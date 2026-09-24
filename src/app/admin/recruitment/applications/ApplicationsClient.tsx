@@ -50,6 +50,7 @@ export default function ApplicationsClient() {
           <nav style={{ display: 'flex', gap: 10 }}>
             <Link href="/admin/recruitment" style={{ color: 'rgba(255,255,255,.75)', fontSize: 13, textDecoration: 'none' }}>نظرة عامة</Link>
             <Link href="/admin/recruitment/jobs" style={{ color: 'rgba(255,255,255,.75)', fontSize: 13, textDecoration: 'none' }}>الوظائف</Link>
+            <Link href="/admin/recruitment/settings" style={{ color: 'rgba(255,255,255,.75)', fontSize: 13, textDecoration: 'none' }}>إعدادات الصفحة العامة</Link>
           </nav>
         </div>
       </header>
