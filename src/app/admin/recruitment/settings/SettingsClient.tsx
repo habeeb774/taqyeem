@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from 'react';
 import { RecruitmentTopbar } from '@/components/recruitment/RecruitmentTopbar';
+import { Button, Card, Field, Input } from '@/components/ui';
 
 type Settings = {
   heroTitle: string;
@@ -155,63 +156,59 @@ export default function SettingsClient() {
   }
 
   return (
-    <main dir="rtl" style={{ minHeight: '100vh', background: '#fbfcfe', color: '#0d0d0d', fontFamily: 'var(--app-font)' }}>
+    <main dir="rtl" style={{ minHeight: '100vh', background: 'var(--dst-color-bg-page)', color: 'var(--dst-color-text)', fontFamily: 'var(--app-font)' }}>
       <RecruitmentTopbar pageTitle="إعدادات صفحة الوظائف العامة" active="settings" />
 
       <section style={{ maxWidth: 900, margin: '0 auto', padding: '28px 34px 60px' }}>
         {loading ? (
-          <p style={{ color: '#888' }}>جارٍ التحميل...</p>
+          <p style={{ color: 'var(--dst-color-text-muted)' }}>جارٍ التحميل...</p>
         ) : !settings ? (
-          <p style={{ color: '#d14343' }}>{error || 'تعذر تحميل الإعدادات'}</p>
+          <p style={{ color: 'var(--dst-color-danger)' }}>{error || 'تعذر تحميل الإعدادات'}</p>
         ) : (
           <>
-            {error && <p style={{ color: '#d14343', fontSize: 12 }}>{error}</p>}
-            {saved && <p style={{ color: '#169b62', fontSize: 12 }}>تم الحفظ بنجاح.</p>}
+            {error && <p style={{ color: 'var(--dst-color-danger)', fontSize: 12 }}>{error}</p>}
+            {saved && <p style={{ color: 'var(--dst-color-success)', fontSize: 12 }}>تم الحفظ بنجاح.</p>}
 
-            <div style={{ background: '#fff', border: '1px solid #e0e0e0', borderRadius: 16, padding: 20, marginBottom: 16 }}>
+            <Card style={{ marginBottom: 16 }}>
               <h2 style={{ margin: '0 0 14px', fontSize: 15, fontWeight: 500 }}>إشعارات المتقدمين الجدد</h2>
               {notificationsLoading ? (
-                <p style={{ color: '#888', fontSize: 12 }}>جارٍ التحميل...</p>
+                <p style={{ color: 'var(--dst-color-text-muted)', fontSize: 12 }}>جارٍ التحميل...</p>
               ) : (
                 <>
-                  {notificationsError && <p style={{ color: '#d14343', fontSize: 12 }}>{notificationsError}</p>}
-                  {notificationsSaved && <p style={{ color: '#169b62', fontSize: 12 }}>تم الحفظ بنجاح.</p>}
-                  <Field label="البريد الإلكتروني لإشعار الموارد البشرية عند وجود متقدم جديد (اختياري)">
-                    <input
+                  {notificationsError && <p style={{ color: 'var(--dst-color-danger)', fontSize: 12 }}>{notificationsError}</p>}
+                  {notificationsSaved && <p style={{ color: 'var(--dst-color-success)', fontSize: 12 }}>تم الحفظ بنجاح.</p>}
+                  <Field id="hr-email" label="البريد الإلكتروني لإشعار الموارد البشرية عند وجود متقدم جديد (اختياري)">
+                    <Input
+                      id="hr-email"
                       type="email"
                       placeholder="hr@alsweed.sa"
                       value={hrEmail}
                       onChange={(e) => setHrEmail(e.target.value)}
-                      style={inputStyle}
                     />
                   </Field>
-                  <button
-                    onClick={saveNotifications}
-                    disabled={notificationsSaving}
-                    style={{ border: 0, borderRadius: 10, padding: '9px 18px', background: '#173BD1', color: '#fff', fontSize: 12.5, fontWeight: 500, cursor: 'pointer', opacity: notificationsSaving ? 0.6 : 1 }}
-                  >
+                  <Button size="sm" onClick={saveNotifications} disabled={notificationsSaving}>
                     {notificationsSaving ? 'جارٍ الحفظ...' : 'حفظ بريد الإشعارات'}
-                  </button>
+                  </Button>
                 </>
               )}
-            </div>
+            </Card>
 
-            <div style={{ background: '#fff', border: '1px solid #e0e0e0', borderRadius: 16, padding: 20, marginBottom: 16 }}>
+            <Card style={{ marginBottom: 16 }}>
               <h2 style={{ margin: '0 0 14px', fontSize: 15, fontWeight: 500 }}>العنوان الرئيسي وروابط المتجر</h2>
-              <Field label="عنوان الصفحة (مثال: وظائف السويد)">
-                <input value={settings.heroTitle} onChange={(e) => setSettings({ ...settings, heroTitle: e.target.value })} style={inputStyle} />
+              <Field id="hero-title" label="عنوان الصفحة (مثال: وظائف السويد)">
+                <Input id="hero-title" value={settings.heroTitle} onChange={(e) => setSettings({ ...settings, heroTitle: e.target.value })} />
               </Field>
-              <Field label="رابط العودة للمتجر (اختياري)">
-                <input
+              <Field id="store-url" label="رابط العودة للمتجر (اختياري)">
+                <Input
+                  id="store-url"
                   placeholder="https://..."
                   value={settings.storeUrl || ''}
                   onChange={(e) => setSettings({ ...settings, storeUrl: e.target.value })}
-                  style={inputStyle}
                 />
               </Field>
-            </div>
+            </Card>
 
-            <div style={{ background: '#fff', border: '1px solid #e0e0e0', borderRadius: 16, padding: 20, marginBottom: 16 }}>
+            <Card style={{ marginBottom: 16 }}>
               <h2 style={{ margin: '0 0 14px', fontSize: 15, fontWeight: 500 }}>صور صفحة الوظائف</h2>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                 <ImageField
@@ -229,58 +226,48 @@ export default function SettingsClient() {
                   onRemove={() => setSettings({ ...settings, jobDetailImageUrl: null })}
                 />
               </div>
-            </div>
+            </Card>
 
-            <div style={{ background: '#fff', border: '1px solid #e0e0e0', borderRadius: 16, padding: 20, marginBottom: 16 }}>
+            <Card style={{ marginBottom: 16 }}>
               <h2 style={{ margin: '0 0 14px', fontSize: 15, fontWeight: 500 }}>تعريف الشركة</h2>
               <div style={{ display: 'grid', gap: 10 }}>
                 {settings.aboutParagraphs.map((p, i) => (
                   <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
-                    <textarea rows={3} value={p} onChange={(e) => updateParagraph(i, e.target.value)} style={{ ...inputStyle, flex: 1 }} />
-                    <button onClick={() => removeParagraph(i)} style={removeBtnStyle}>حذف</button>
+                    <textarea
+                      rows={3}
+                      value={p}
+                      onChange={(e) => updateParagraph(i, e.target.value)}
+                      className="dst-textarea"
+                      style={{ flex: 1 }}
+                      aria-label={`فقرة ${i + 1}`}
+                    />
+                    <Button variant="danger" size="sm" onClick={() => removeParagraph(i)}>حذف</Button>
                   </div>
                 ))}
               </div>
-              <button onClick={addParagraph} style={addBtnStyle}>+ إضافة فقرة</button>
-            </div>
+              <Button variant="ghost" size="sm" onClick={addParagraph} style={{ marginTop: 10 }}>+ إضافة فقرة</Button>
+            </Card>
 
-            <div style={{ background: '#fff', border: '1px solid #e0e0e0', borderRadius: 16, padding: 20, marginBottom: 16 }}>
+            <Card style={{ marginBottom: 16 }}>
               <h2 style={{ margin: '0 0 14px', fontSize: 15, fontWeight: 500 }}>المزايا الوظيفية</h2>
               <div style={{ display: 'grid', gap: 8 }}>
                 {settings.benefits.map((b, i) => (
                   <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                    <input value={b} onChange={(e) => updateBenefit(i, e.target.value)} style={{ ...inputStyle, flex: 1 }} />
-                    <button onClick={() => removeBenefit(i)} style={removeBtnStyle}>حذف</button>
+                    <Input value={b} onChange={(e) => updateBenefit(i, e.target.value)} style={{ flex: 1 }} aria-label={`ميزة ${i + 1}`} />
+                    <Button variant="danger" size="sm" onClick={() => removeBenefit(i)}>حذف</Button>
                   </div>
                 ))}
               </div>
-              <button onClick={addBenefit} style={addBtnStyle}>+ إضافة ميزة</button>
-            </div>
+              <Button variant="ghost" size="sm" onClick={addBenefit} style={{ marginTop: 10 }}>+ إضافة ميزة</Button>
+            </Card>
 
-            <button
-              onClick={save}
-              disabled={saving}
-              style={{ border: 0, borderRadius: 10, padding: '11px 22px', background: '#173BD1', color: '#fff', fontSize: 13, fontWeight: 500, cursor: 'pointer', opacity: saving ? 0.6 : 1 }}
-            >
+            <Button onClick={save} disabled={saving}>
               {saving ? 'جارٍ الحفظ...' : 'حفظ التغييرات'}
-            </button>
+            </Button>
           </>
         )}
       </section>
     </main>
-  );
-}
-
-const inputStyle: React.CSSProperties = { width: '100%', border: '1px solid #e0e0e0', borderRadius: 10, padding: '9px 11px', fontSize: 13, fontFamily: 'inherit', boxSizing: 'border-box' };
-const removeBtnStyle: React.CSSProperties = { border: '1px solid #ffd4d4', background: '#fff1f1', color: '#d14343', borderRadius: 8, padding: '9px 12px', fontSize: 12, cursor: 'pointer', whiteSpace: 'nowrap' };
-const addBtnStyle: React.CSSProperties = { marginTop: 10, border: '1px solid #e0e0e0', background: '#fff', borderRadius: 8, padding: '8px 14px', fontSize: 12, cursor: 'pointer' };
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div style={{ marginBottom: 12, display: 'flex', flexDirection: 'column', gap: 5 }}>
-      <label style={{ fontSize: 11, color: '#888', fontWeight: 400 }}>{label}</label>
-      {children}
-    </div>
   );
 }
 
@@ -299,21 +286,21 @@ function ImageField({
 }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-      <label style={{ fontSize: 11, color: '#888', fontWeight: 400 }}>{label}</label>
+      <label style={{ fontSize: 11, color: 'var(--dst-color-text-muted)', fontWeight: 400 }}>{label}</label>
       {url ? (
         <div
           style={{
-            width: '100%', aspectRatio: '3 / 4', borderRadius: 10, border: '1px solid #e0e0e0',
+            width: '100%', aspectRatio: '3 / 4', borderRadius: 'var(--dst-radius-md)', border: '1px solid var(--dst-color-border)',
             backgroundImage: `url('${url}')`, backgroundSize: 'cover', backgroundPosition: 'center',
           }}
         />
       ) : (
-        <div style={{ width: '100%', aspectRatio: '3 / 4', borderRadius: 10, border: '1px dashed #dcdfe6', display: 'grid', placeItems: 'center', color: '#aaa', fontSize: 12 }}>
+        <div style={{ width: '100%', aspectRatio: '3 / 4', borderRadius: 'var(--dst-radius-md)', border: '1px dashed #dcdfe6', display: 'grid', placeItems: 'center', color: '#aaa', fontSize: 12 }}>
           لا توجد صورة
         </div>
       )}
       <div style={{ display: 'flex', gap: 8 }}>
-        <label style={{ ...addBtnStyle, marginTop: 0, cursor: uploading ? 'default' : 'pointer', opacity: uploading ? 0.6 : 1 }}>
+        <label className="dst-btn dst-btn--ghost dst-btn--sm" style={{ cursor: uploading ? 'default' : 'pointer', opacity: uploading ? 0.6 : 1 }}>
           {uploading ? 'جارٍ الرفع...' : url ? 'استبدال الصورة' : 'رفع صورة'}
           <input
             type="file"
@@ -328,7 +315,7 @@ function ImageField({
           />
         </label>
         {url && (
-          <button onClick={onRemove} style={removeBtnStyle}>حذف</button>
+          <Button variant="danger" size="sm" onClick={onRemove}>حذف</Button>
         )}
       </div>
     </div>

@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { RecruitmentTopbar } from '@/components/recruitment/RecruitmentTopbar';
+import { Button, Card, Input, Select } from '@/components/ui';
 
 const STATUSES: Record<string, string> = {
   new: 'جديد', reviewing: 'قيد المراجعة', shortlisted: 'قائمة مختصرة', interview: 'مقابلة',
@@ -79,26 +80,25 @@ export default function ApplicationDetailClient() {
   }
 
   return (
-    <main dir="rtl" style={{ minHeight: '100vh', background: '#fbfcfe', color: '#0d0d0d', fontFamily: 'var(--app-font)' }}>
+    <main dir="rtl" style={{ minHeight: '100vh', background: 'var(--dst-color-bg-page)', color: 'var(--dst-color-text)', fontFamily: 'var(--app-font)' }}>
       <RecruitmentTopbar pageTitle="تفاصيل الطلب" active="applications" maxWidth={900} />
 
       <section style={{ maxWidth: 900, margin: '0 auto', padding: '28px 34px 60px' }}>
         {loading ? (
-          <p style={{ color: '#888' }}>جارٍ التحميل...</p>
+          <p style={{ color: 'var(--dst-color-text-muted)' }}>جارٍ التحميل...</p>
         ) : error && !data ? (
-          <p style={{ color: '#d14343' }}>{error}</p>
+          <p style={{ color: 'var(--dst-color-danger)' }}>{error}</p>
         ) : data ? (
           <>
-            <div style={{ background: '#fff', border: '1px solid #e0e0e0', borderRadius: 16, padding: 20, marginBottom: 16 }}>
+            <Card style={{ marginBottom: 16 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
                 <div>
                   <h2 style={{ margin: '0 0 6px', fontSize: 18, fontWeight: 500 }}>{data.application.full_name}</h2>
-                  <p style={{ margin: 0, color: '#888', fontSize: 12, fontWeight: 400 }}>
+                  <p style={{ margin: 0, color: 'var(--dst-color-text-muted)', fontSize: 12, fontWeight: 400 }}>
                     {data.application.reference_number} · {data.application.job_title || 'بدون وظيفة'} · {data.application.department_name || '—'}
                   </p>
                 </div>
-                <a href={`/api/app/applications/${params.id}/cv`} target="_blank" rel="noreferrer"
-                  style={{ border: '1px solid #e0e0e0', background: '#fff', borderRadius: 10, padding: '9px 16px', fontSize: 13, textDecoration: 'none', color: '#0d0d0d' }}>
+                <a href={`/api/app/applications/${params.id}/cv`} target="_blank" rel="noreferrer" className="dst-btn dst-btn--ghost dst-btn--md">
                   عرض السيرة الذاتية
                 </a>
               </div>
@@ -112,39 +112,39 @@ export default function ApplicationDetailClient() {
               </div>
               {data.application.cover_letter && (
                 <div style={{ marginTop: 16 }}>
-                  <p style={{ margin: '0 0 6px', fontSize: 11, color: '#888' }}>خطاب التقديم</p>
+                  <p style={{ margin: '0 0 6px', fontSize: 11, color: 'var(--dst-color-text-muted)' }}>خطاب التقديم</p>
                   <p style={{ margin: 0, fontSize: 13, lineHeight: 1.8, whiteSpace: 'pre-wrap' }}>{data.application.cover_letter}</p>
                 </div>
               )}
-            </div>
+            </Card>
 
-            <div style={{ background: '#fff', border: '1px solid #e0e0e0', borderRadius: 16, padding: 20, marginBottom: 16 }}>
+            <Card style={{ marginBottom: 16 }}>
               <h3 style={{ margin: '0 0 12px', fontSize: 14, fontWeight: 500 }}>تغيير الحالة</h3>
-              {error && <p style={{ color: '#d14343', fontSize: 12 }}>{error}</p>}
+              {error && <p style={{ color: 'var(--dst-color-danger)', fontSize: 12 }}>{error}</p>}
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                <select value={status} onChange={(e) => setStatus(e.target.value)} style={{ border: '1px solid #e0e0e0', borderRadius: 10, padding: '9px 12px', fontSize: 13 }}>
+                <Select value={status} onChange={(e) => setStatus(e.target.value)} style={{ width: 'auto' }} aria-label="اختيار الحالة الجديدة">
                   {Object.entries(STATUSES).map(([v, l]) => (
                     <option key={v} value={v}>{l}</option>
                   ))}
-                </select>
-                <input
+                </Select>
+                <Input
                   placeholder="ملاحظة اختيارية عن سبب التغيير"
                   value={note}
                   onChange={(e) => setNote(e.target.value)}
-                  style={{ flex: 1, minWidth: 200, border: '1px solid #e0e0e0', borderRadius: 10, padding: '9px 12px', fontSize: 13 }}
+                  style={{ flex: 1, minWidth: 200 }}
+                  aria-label="ملاحظة تغيير الحالة"
                 />
-                <button onClick={updateStatus} disabled={saving || status === data.application.status}
-                  style={{ border: 0, borderRadius: 10, padding: '9px 18px', background: '#173BD1', color: '#fff', fontSize: 13, fontWeight: 500, cursor: 'pointer', opacity: saving ? 0.6 : 1 }}>
+                <Button onClick={updateStatus} disabled={saving || status === data.application.status}>
                   تحديث الحالة
-                </button>
+                </Button>
               </div>
-            </div>
+            </Card>
 
-            <div style={{ background: '#fff', border: '1px solid #e0e0e0', borderRadius: 16, padding: 20, marginBottom: 16 }}>
+            <Card style={{ marginBottom: 16 }}>
               <h3 style={{ margin: '0 0 12px', fontSize: 14, fontWeight: 500 }}>سجل الحالات</h3>
               <div style={{ display: 'grid', gap: 8 }}>
                 {data.history.map((h: any) => (
-                  <div key={h.id} style={{ fontSize: 12, color: '#555', display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f0f0f0', paddingBottom: 8 }}>
+                  <div key={h.id} style={{ fontSize: 12, color: '#555', display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--dst-color-border)', paddingBottom: 8 }}>
                     <span>
                       {STATUSES[h.old_status] || h.old_status || 'بداية'} ← {STATUSES[h.new_status] || h.new_status}
                       {h.note ? ` — ${h.note}` : ''}
@@ -155,32 +155,32 @@ export default function ApplicationDetailClient() {
                   </div>
                 ))}
               </div>
-            </div>
+            </Card>
 
-            <div style={{ background: '#fff', border: '1px solid #e0e0e0', borderRadius: 16, padding: 20 }}>
+            <Card>
               <h3 style={{ margin: '0 0 12px', fontSize: 14, fontWeight: 500 }}>الملاحظات الداخلية</h3>
               <div style={{ display: 'grid', gap: 8, marginBottom: 14 }}>
-                {data.notes.length === 0 && <p style={{ fontSize: 12, color: '#888', fontWeight: 400 }}>لا توجد ملاحظات بعد.</p>}
+                {data.notes.length === 0 && <p style={{ fontSize: 12, color: 'var(--dst-color-text-muted)', fontWeight: 400 }}>لا توجد ملاحظات بعد.</p>}
                 {data.notes.map((n: any) => (
-                  <div key={n.id} style={{ fontSize: 13, borderBottom: '1px solid #f0f0f0', paddingBottom: 8 }}>
+                  <div key={n.id} style={{ fontSize: 13, borderBottom: '1px solid var(--dst-color-border)', paddingBottom: 8 }}>
                     <p style={{ margin: '0 0 4px', whiteSpace: 'pre-wrap' }}>{n.note}</p>
                     <p style={{ margin: 0, fontSize: 11, color: '#aaa', fontWeight: 400 }}>{n.user_name} · {new Date(n.created_at).toLocaleString('ar-SA')}</p>
                   </div>
                 ))}
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
-                <input
+                <Input
                   placeholder="أضف ملاحظة..."
                   value={newNote}
                   onChange={(e) => setNewNote(e.target.value)}
-                  style={{ flex: 1, border: '1px solid #e0e0e0', borderRadius: 10, padding: '9px 12px', fontSize: 13 }}
+                  style={{ flex: 1 }}
+                  aria-label="ملاحظة جديدة"
                 />
-                <button onClick={addNote} disabled={saving || !newNote.trim()}
-                  style={{ border: '1px solid #e0e0e0', background: '#fff', borderRadius: 10, padding: '9px 16px', fontSize: 13, cursor: 'pointer' }}>
+                <Button variant="ghost" onClick={addNote} disabled={saving || !newNote.trim()}>
                   إضافة
-                </button>
+                </Button>
               </div>
-            </div>
+            </Card>
           </>
         ) : null}
       </section>
@@ -191,7 +191,7 @@ export default function ApplicationDetailClient() {
 function Info({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div>
-      <p style={{ margin: '0 0 3px', fontSize: 11, color: '#888', fontWeight: 400 }}>{label}</p>
+      <p style={{ margin: '0 0 3px', fontSize: 11, color: 'var(--dst-color-text-muted)', fontWeight: 400 }}>{label}</p>
       <p style={{ margin: 0, fontWeight: 500 }}>{value}</p>
     </div>
   );

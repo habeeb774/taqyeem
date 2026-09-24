@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { RecruitmentTopbar } from '@/components/recruitment/RecruitmentTopbar';
+import { Badge, Input, Select } from '@/components/ui';
 
 type Application = {
   id: string; reference_number: string; full_name: string; email: string; phone: string;
@@ -41,52 +42,51 @@ export default function ApplicationsClient() {
   }, [search, status, jobIdFilter]);
 
   return (
-    <main dir="rtl" style={{ minHeight: '100vh', background: '#fbfcfe', color: '#0d0d0d', fontFamily: 'var(--app-font)' }}>
+    <main dir="rtl" style={{ minHeight: '100vh', background: 'var(--dst-color-bg-page)', color: 'var(--dst-color-text)', fontFamily: 'var(--app-font)' }}>
       <RecruitmentTopbar pageTitle="المتقدمون" active="applications" maxWidth={1200} />
 
       <section style={{ maxWidth: 1200, margin: '0 auto', padding: '28px 34px 60px' }}>
         <div style={{ display: 'flex', gap: 10, marginBottom: 18, flexWrap: 'wrap' }}>
-          <input
+          <Input
             placeholder="بحث بالاسم، البريد، الجوال، أو رقم الطلب..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            style={{ flex: 1, minWidth: 240, border: '1px solid #e0e0e0', borderRadius: 10, padding: '10px 12px', fontSize: 13 }}
+            style={{ flex: 1, minWidth: 240 }}
+            aria-label="بحث عن متقدم"
           />
-          <select value={status} onChange={(e) => setStatus(e.target.value)} style={{ border: '1px solid #e0e0e0', borderRadius: 10, padding: '10px 12px', fontSize: 13 }}>
+          <Select value={status} onChange={(e) => setStatus(e.target.value)} style={{ width: 'auto' }} aria-label="فلترة حسب الحالة">
             <option value="">كل الحالات</option>
             {Object.entries(STATUSES).map(([v, l]) => (
               <option key={v} value={v}>{l}</option>
             ))}
-          </select>
+          </Select>
         </div>
 
         {loading ? (
-          <p style={{ color: '#888' }}>جارٍ التحميل...</p>
+          <p style={{ color: 'var(--dst-color-text-muted)' }}>جارٍ التحميل...</p>
         ) : error ? (
-          <p style={{ color: '#d14343' }}>{error}</p>
+          <p style={{ color: 'var(--dst-color-danger)' }}>{error}</p>
         ) : applications.length === 0 ? (
-          <p style={{ color: '#888' }}>لا يوجد متقدمون بعد.</p>
+          <p style={{ color: 'var(--dst-color-text-muted)' }}>لا يوجد متقدمون بعد.</p>
         ) : (
           <div style={{ display: 'grid', gap: 10 }}>
             {applications.map((app) => (
               <Link
                 key={app.id}
                 href={`/admin/recruitment/applications/${app.id}`}
+                className="dst-card"
                 style={{
-                  background: '#fff', border: '1px solid #e0e0e0', borderRadius: 14, padding: 16, display: 'flex',
-                  justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap',
-                  textDecoration: 'none', color: 'inherit',
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap',
+                  textDecoration: 'none', color: 'inherit', padding: 16, borderRadius: 14,
                 }}
               >
                 <div>
                   <p style={{ margin: '0 0 4px', fontWeight: 500, fontSize: 15 }}>{app.full_name}</p>
-                  <p style={{ margin: 0, color: '#888', fontSize: 12, fontWeight: 400 }}>
+                  <p style={{ margin: 0, color: 'var(--dst-color-text-muted)', fontSize: 12, fontWeight: 400 }}>
                     {app.reference_number} · {app.job_title || 'بدون وظيفة'} · {app.email} · {app.phone}
                   </p>
                 </div>
-                <span style={{ fontSize: 11, padding: '4px 10px', borderRadius: 999, background: '#eef2ff', color: '#173BD1', fontWeight: 500, whiteSpace: 'nowrap' }}>
-                  {STATUSES[app.status] || app.status}
-                </span>
+                <Badge>{STATUSES[app.status] || app.status}</Badge>
               </Link>
             ))}
           </div>
