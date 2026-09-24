@@ -118,17 +118,16 @@ export default function JobsPage() {
           />
           <div style={{ flex: 1 }}>
             <p style={{ margin: 0, fontSize: 15, fontWeight: 600 }}>شركة السويد التجارية</p>
-            <p style={{ margin: 0, color: 'rgba(255,255,255,.7)', fontSize: 11 }}>التوظيف والفرص الوظيفية</p>
+            <a href="#" style={{ margin: 0, color: 'rgba(255,255,255,.7)', fontSize: 11, textDecoration: 'none' }}>
+              ← العودة لمتجر السويد
+            </a>
           </div>
           <a href="/login" style={{ color: 'rgba(255,255,255,.8)', fontSize: 12.5, textDecoration: 'none', whiteSpace: 'nowrap' }}>
             دخول الموظفين
           </a>
         </div>
         <div style={{ maxWidth: 1000, margin: '0 auto', padding: '10px 24px 36px' }}>
-          <h1 style={{ margin: 0, fontSize: 28, fontWeight: 500 }}>انضم إلى فريقنا</h1>
-          <p style={{ margin: '12px 0 0', fontSize: 14, opacity: 0.9, lineHeight: 1.9, maxWidth: 560 }}>
-            نبحث دائمًا عن مواهب تشاركنا الطموح. تصفح الوظائف الشاغرة أدناه وقدّم طلبك مباشرة.
-          </p>
+          <h1 style={{ margin: 0, fontSize: 28, fontWeight: 500 }}>وظائف السويد</h1>
           <p style={{ margin: '14px 0 0', fontSize: 13, opacity: 0.85 }}>
             {jobs ? `${filtered.length} وظيفة متاحة حاليًا` : 'جارٍ تحميل الوظائف...'}
           </p>
@@ -137,10 +136,38 @@ export default function JobsPage() {
 
       <section style={{ maxWidth: 900, margin: '0 auto', padding: '32px 24px 8px' }}>
         <h2 style={{ fontSize: 20, fontWeight: 500, margin: '0 0 10px' }}>تعريف الشركة</h2>
-        <p style={{ color: '#333', fontSize: 14, lineHeight: 2, margin: 0 }}>
-          شركة السويد التجارية إحدى الشركات السعودية العاملة في قطاعها، وتسعى دائمًا لاستقطاب الكفاءات المؤهلة
-          للانضمام إلى فرق العمل التشغيلية والإدارية، مع توفير بيئة عمل مستقرة ومسارات تطوير مهني واضحة.
+        <p style={{ color: '#333', fontSize: 14, lineHeight: 2, margin: '0 0 16px' }}>
+          تُعدّ شركة إبراهيم عبدالله السويد التجارية إحدى الشركات السعودية الرائدة في توريد مستلزمات السباكة والأدوات
+          الصحية ومواد البناء والكهرباء، وتخدم المشاريع السكنية والتجارية والصناعية في مختلف مناطق المملكة العربية
+          السعودية، من مرحلة التأسيس حتى التشطيب النهائي.
         </p>
+        <p style={{ color: '#333', fontSize: 14, lineHeight: 2, margin: '0 0 16px' }}>
+          وقد تأسّست الشركة عام 1978م، ورسّخت خلال أكثر من خمسة وأربعين عامًا مكانتها مزوّدًا موثوقًا في القطاع،
+          اعتمادًا على شبكة شراكات مع عدد من العلامات التجارية العالمية، وفريق عمل مؤهّل يضع رضا العملاء في مقدمة
+          أولوياته.
+        </p>
+        <p style={{ color: '#333', fontSize: 14, lineHeight: 2, margin: 0 }}>
+          وفي إطار خطط التوسّع التشغيلي، تستقطب الشركة الكفاءات المؤهّلة للانضمام إلى إداراتها الفنية والتشغيلية
+          والإدارية، وتوفّر لها بيئة عمل مستقرة ومسارات تطوير مهني واضحة.
+        </p>
+      </section>
+
+      <section style={{ maxWidth: 900, margin: '0 auto', padding: '24px 24px 8px' }}>
+        <h2 style={{ fontSize: 20, fontWeight: 500, margin: '0 0 14px' }}>المزايا الوظيفية</h2>
+        <p style={{ color: '#333', fontSize: 14, lineHeight: 2, margin: '0 0 12px' }}>
+          توفّر الشركة حزمة مزايا تنافسية لجميع منسوبيها، ومن أبرزها:
+        </p>
+        <ul style={{ margin: 0, padding: '0 20px 0 0', color: '#333', fontSize: 14, lineHeight: 2.2 }}>
+          <li>تأمين طبي للموظف وأفراد أسرته.</li>
+          <li>راتب أساسي تنافسي مع بدلَي السكن والمواصلات.</li>
+          <li>برامج تدريب على الأنظمة والمنتجات المعتمدة في الشركة.</li>
+          <li>خصم لمنسوبي الشركة على منتجاتها.</li>
+          <li>بيئة عمل تعتمد الأنظمة الرقمية في جميع الإجراءات.</li>
+        </ul>
+      </section>
+
+      <section style={{ maxWidth: 1000, margin: '0 auto', padding: '24px 24px 0' }}>
+        <h2 style={{ fontSize: 20, fontWeight: 500, margin: 0 }}>الوظائف الشاغرة</h2>
       </section>
 
       <section id="jobs" style={{ maxWidth: 1000, margin: '0 auto', padding: '24px 24px 8px' }}>
@@ -161,7 +188,7 @@ export default function JobsPage() {
           <input
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            placeholder="ابحث عن وظيفة..."
+            placeholder="البحث عن شواغر"
             style={{ flex: '1 1 260px', minWidth: 220, height: 44, borderRadius: 10, border: '1px solid #dcdfe6', padding: '0 15px', fontSize: 14, fontFamily: 'var(--app-font)' }}
           />
           {cities.length > 0 && (
@@ -241,13 +268,16 @@ export default function JobsPage() {
         <div style={{ maxWidth: 1000, margin: '0 auto', padding: '48px 24px' }}>
           <h2 style={{ fontSize: 22, fontWeight: 500, margin: '0 0 12px' }}>لم تجد شاغرًا يناسب مؤهلاتك؟</h2>
           <p style={{ color: 'rgba(255,255,255,.85)', maxWidth: 560, margin: '0 0 20px', lineHeight: 1.9 }}>
-            يمكنك إرسال سيرتك الذاتية لحفظها في قاعدة بيانات المتقدمين، وسيتم التواصل معك عند توفّر شاغر مطابق لمؤهلاتك وخبراتك.
+            يمكنكم إرسال السيرة الذاتية إلى إدارة الموارد البشرية لحفظها في قاعدة بيانات المتقدمين، وسيتم التواصل معكم
+            عند توفّر شاغر مطابق للمؤهلات والخبرات.
           </p>
           <a href="/careers/general" style={{ display: 'inline-block', background: '#fff', color: '#173BD1', borderRadius: 10, padding: '12px 26px', fontSize: 14, fontWeight: 500, textDecoration: 'none' }}>
-            التقديم العام
+            إرسال السيرة الذاتية
           </a>
         </div>
       </section>
+
+      <footer style={{ padding: '24px', textAlign: 'center', color: '#9aa2b1', fontSize: 12 }}>السويد</footer>
     </main>
   );
 }
