@@ -5,6 +5,10 @@ const allowedOrigins = new Set(
     .filter(Boolean),
 );
 
+export function isAllowedPublicOrigin(origin: string | null): boolean {
+  return !!origin && allowedOrigins.has(origin);
+}
+
 export function corsHeaders(request: Request): Record<string, string> {
   const origin = request.headers.get('origin') || '';
   if (!allowedOrigins.has(origin)) return {};

@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { isAllowedPublicOrigin } from '@/server/cors';
 
 const mutatingMethods = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
+
+const publicCrossOriginRoutes = new Set(['/api/app/applications']);
 
 function withSecurityHeaders(response: NextResponse) {
   response.headers.set('X-Frame-Options', 'DENY');
@@ -36,7 +39,14 @@ function sameOrigin(req: NextRequest) {
 }
 
 export function proxy(req: NextRequest) {
-  if (req.nextUrl.pathname.startsWith('/api/') && mutatingMethods.has(req.method) && !sameOrigin(req)) {
+  const isPublicCrossOriginRoute = publicCrossOriginRoutes.has(req.nextUrl.pathname)
+    && isAllowedPublicOrigin(req.headers.get('origin'));
+  if (
+    req.nextUrl.pathname.startsWith('/api/')
+    && mutatingMethods.has(req.method)
+    && !sameOrigin(req)
+    && !isPublicCrossOriginRoute
+  ) {
     return withSecurityHeaders(NextResponse.json({ ok: false, error: 'FORBIDDEN' }, { status: 403 }));
   }
 
