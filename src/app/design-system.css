@@ -1,3 +1,13 @@
+.dst-btn,
+.dst-input,
+.dst-select,
+.dst-textarea,
+.dst-card,
+.dst-page-header,
+.dst-page-header * {
+  box-sizing: border-box;
+}
+
 :root {
   --dst-color-primary: #173bd1;
   --dst-color-primary-hover: #102a9e;
