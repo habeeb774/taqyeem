@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { signOut } from "@/auth";
 import { pool } from "@/db";
 import { requireUser } from "@/server/context";
+import { getPublicBranding } from "@/server/branding";
 import { PageHeader } from "@/components/ui";
 
 async function logout() {
@@ -31,6 +32,7 @@ export default async function Home() {
     redirect("/login");
   }
 
+  const branding = await getPublicBranding();
   const can = (permission: string) => user.permissions.includes(permission);
   const systems = [
     can("evaluations.view") && {
@@ -87,7 +89,7 @@ export default async function Home() {
       }}
     >
       <PageHeader
-        eyebrow="أنظمة الموارد والتشغيل"
+        eyebrow={branding.companyName}
         title="منصة تقييم"
         brandMark={
           <div
@@ -96,14 +98,34 @@ export default async function Home() {
               height: 36,
               borderRadius: 12,
               border: "1px solid rgba(255,255,255,.38)",
-              background: "rgba(255,255,255,.13) url('/brand-logo.png') center/23px 29px no-repeat",
+              background: "rgba(255,255,255,.13) var(--brand-logo-url) center/23px 29px no-repeat",
               filter: "brightness(0) invert(1)",
             }}
             aria-label="شعار السويد"
           />
         }
         nav={
-          <form action={logout}>
+          <>
+            {can("settings.manage") && (
+              <a
+                href="/admin/branding"
+                aria-label="إعدادات النظام"
+                title="إعدادات النظام"
+                style={{
+                  display: "grid",
+                  placeItems: "center",
+                  width: 38,
+                  height: 38,
+                  border: "1px solid rgba(255,255,255,.32)",
+                  borderRadius: 10,
+                  background: "rgba(255,255,255,.1)",
+                  fontSize: 16,
+                }}
+              >
+                ⚙︎
+              </a>
+            )}
+            <form action={logout}>
             <button
               type="submit"
               style={{
@@ -120,7 +142,8 @@ export default async function Home() {
             >
               خروج
             </button>
-          </form>
+            </form>
+          </>
         }
       />
       <section

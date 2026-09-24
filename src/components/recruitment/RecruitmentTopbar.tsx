@@ -26,7 +26,7 @@ export function RecruitmentTopbar({
         <div
           style={{
             width: 38, height: 38, borderRadius: 12, border: '1px solid rgba(255,255,255,.38)',
-            background: "rgba(255,255,255,.13) url('/brand-logo.png') center/23px 29px no-repeat",
+            background: "rgba(255,255,255,.13) var(--brand-logo-url) center/23px 29px no-repeat",
             filter: 'brightness(0) invert(1)', flexShrink: 0,
           }}
           aria-label="شعار السويد"

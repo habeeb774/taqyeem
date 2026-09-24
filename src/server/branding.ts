@@ -1,0 +1,63 @@
+import { pool } from '@/db';
+import { must, type SecurityContext } from '@/db/queries/security';
+import { resolveDefaultOrganizationId } from '@/server/recruitment/org';
+
+const SETTINGS_KEY = 'app.branding';
+
+export type BrandingSettings = {
+  companyName: string;
+  logoUrl: string | null;
+  useSystemFont: boolean;
+};
+
+const DEFAULT_BRANDING: BrandingSettings = {
+  companyName: 'شركة السويد التجارية',
+  logoUrl: null,
+  useSystemFont: false,
+};
+
+function normalize(value: unknown): BrandingSettings {
+  if (!value || typeof value !== 'object') return DEFAULT_BRANDING;
+  const v = value as Partial<BrandingSettings>;
+  return {
+    companyName: typeof v.companyName === 'string' && v.companyName.trim() ? v.companyName : DEFAULT_BRANDING.companyName,
+    logoUrl: typeof v.logoUrl === 'string' && v.logoUrl.trim() ? v.logoUrl.replace(/['"()]/g, '') : null,
+    useSystemFont: v.useSystemFont === true,
+  };
+}
+
+export async function getPublicBranding(): Promise<BrandingSettings> {
+  try {
+    const organizationId = await resolveDefaultOrganizationId();
+    const result = await pool.query(
+      `select value from public.system_settings where organization_id=$1::uuid and key=$2 limit 1`,
+      [organizationId, SETTINGS_KEY],
+    );
+    return normalize(result.rows[0]?.value);
+  } catch {
+    return DEFAULT_BRANDING;
+  }
+}
+
+export async function getBrandingForAdmin(context: SecurityContext): Promise<BrandingSettings> {
+  must(context, 'settings.manage');
+  const result = await pool.query(
+    `select value from public.system_settings where organization_id=$1::uuid and key=$2 limit 1`,
+    [context.organizationId, SETTINGS_KEY],
+  );
+  return normalize(result.rows[0]?.value);
+}
+
+export async function updateBranding(context: SecurityContext, input: BrandingSettings): Promise<BrandingSettings> {
+  must(context, 'settings.manage');
+  const value = normalize(input);
+  await pool.query(
+    `
+      insert into public.system_settings(organization_id,key,value,description,updated_by)
+      values($1::uuid,$2,$3::jsonb,'هوية النظام (الشعار والخط واسم الشركة)',$4::uuid)
+      on conflict(organization_id,key) do update set value=excluded.value, updated_by=excluded.updated_by, updated_at=now()
+    `,
+    [context.organizationId, SETTINGS_KEY, JSON.stringify(value), context.user.id],
+  );
+  return value;
+}

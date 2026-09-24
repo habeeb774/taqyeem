@@ -33,7 +33,7 @@ export function DesignShell({ children }: { children: ReactNode }) {
           <div
             style={{
               width: 36, height: 36, borderRadius: 12, border: '1px solid rgba(255,255,255,.38)',
-              background: "rgba(255,255,255,.13) url('/brand-logo.png') center/23px 29px no-repeat",
+              background: "rgba(255,255,255,.13) var(--brand-logo-url) center/23px 29px no-repeat",
               filter: 'brightness(0) invert(1)',
             }}
             aria-label="شعار السويد"
