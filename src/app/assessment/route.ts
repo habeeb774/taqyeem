@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { NextResponse } from "next/server";
 import { jsonError, requireUser } from "@/server/context";
-import { getBrandingOverrideStyleTag } from "@/server/branding";
+import { getBrandingHeadHtml } from "@/server/branding";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -25,7 +25,7 @@ export async function GET() {
         join(process.cwd(), "src", "templates", "assessment.html"),
         "utf8",
       )
-    ).replace("</head>", `${baseHeadAssets}${await getBrandingOverrideStyleTag()}</head>`);
+    ).replace("</head>", `${baseHeadAssets}${await getBrandingHeadHtml()}</head>`);
     return new NextResponse(html, {
       headers: {
         "Content-Type": "text/html; charset=utf-8",

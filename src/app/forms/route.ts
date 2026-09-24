@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { NextResponse } from "next/server";
 import { requireUser, must, jsonError } from "@/server/context";
-import { getBrandingOverrideStyleTag } from "@/server/branding";
+import { getBrandingHeadHtml } from "@/server/branding";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -36,7 +36,7 @@ export async function GET() {
     // /api/app/forms?templates=1 after this server-side authorization check.
     const html = stripInlineFormDefinitions(template).replace(
       "</head>",
-      `${baseHeadAssets}${await getBrandingOverrideStyleTag()}</head>`,
+      `${baseHeadAssets}${await getBrandingHeadHtml()}</head>`,
     );
     return new NextResponse(html, {
       headers: {

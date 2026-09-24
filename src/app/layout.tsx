@@ -1,5 +1,5 @@
 import './design-system.css';
-import { getBrandingOverrideCss } from '@/server/branding';
+import { GOOGLE_FONTS_URL, getBrandingOverrideCss } from '@/server/branding';
 
 export default async function RootLayout({children}:{children:React.ReactNode}){
   const overrideCss = await getBrandingOverrideCss();
@@ -11,10 +11,7 @@ export default async function RootLayout({children}:{children:React.ReactNode}){
         <link href="/system-topbar.css" rel="stylesheet" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Alexandria:wght@300;400;500;600;700&family=Cairo:wght@300;400;500;600;700&family=Tajawal:wght@300;400;500;700&display=swap"
-          rel="stylesheet"
-        />
+        <link href={GOOGLE_FONTS_URL} rel="stylesheet" />
         <style dangerouslySetInnerHTML={{ __html: overrideCss }} />
       </head>
       <body>{children}</body>

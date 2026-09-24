@@ -62,15 +62,26 @@ export async function getPublicBranding(): Promise<BrandingSettings> {
 
 export async function getBrandingOverrideCss(): Promise<string> {
   const branding = await getPublicBranding();
+  const fontStack = FONT_STACKS[branding.fontChoice];
   const overrides = [
-    `--app-font: ${FONT_STACKS[branding.fontChoice]} !important;`,
+    `--app-font: ${fontStack} !important;`,
+    // The legacy forms/assessment templates style every element with their own --ff variable.
+    `--ff: ${fontStack} !important;`,
     branding.logoUrl ? `--brand-logo-url: url('${branding.logoUrl}') !important;` : '',
   ].filter(Boolean).join(' ');
   return `:root{${overrides}}`;
 }
 
-export async function getBrandingOverrideStyleTag(): Promise<string> {
-  return `<style>${await getBrandingOverrideCss()}</style>`;
+export const GOOGLE_FONTS_URL =
+  'https://fonts.googleapis.com/css2?family=Alexandria:wght@300;400;500;600;700&family=Cairo:wght@300;400;500;600;700&family=Tajawal:wght@300;400;500;700&display=swap';
+
+export async function getBrandingHeadHtml(): Promise<string> {
+  return [
+    '<link rel="preconnect" href="https://fonts.googleapis.com">',
+    '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>',
+    `<link rel="stylesheet" href="${GOOGLE_FONTS_URL}">`,
+    `<style>${await getBrandingOverrideCss()}</style>`,
+  ].join('');
 }
 
 export async function getBrandingForAdmin(context: SecurityContext): Promise<BrandingSettings> {

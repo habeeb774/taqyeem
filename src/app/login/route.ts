@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { getBrandingHeadHtml } from '@/server/branding';
 
 export const dynamic = 'force-dynamic';
 
@@ -156,8 +157,9 @@ const html = `<!doctype html>
 </body>
 </html>`;
 
-export function GET() {
-  return new NextResponse(html, {
+export async function GET() {
+  const page = html.replace('</head>', `${await getBrandingHeadHtml()}</head>`);
+  return new NextResponse(page, {
     headers: {
       'Content-Type': 'text/html; charset=utf-8',
       'Cache-Control': 'no-store',
