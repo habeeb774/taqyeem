@@ -51,6 +51,13 @@ export default async function Home() {
       icon: "✦",
       color: "#7c3aed",
     },
+    can("recruitment.jobs.view") && {
+      title: "نظام التوظيف",
+      description: "إدارة الوظائف الشاغرة وطلبات المتقدمين",
+      href: "/admin/recruitment",
+      icon: "👥",
+      color: "#c2410c",
+    },
     user.user.employeeId && {
       title: "تقييمي",
       description: "عرض تقييمك الشخصي وطلب مراجعة عند الحاجة",

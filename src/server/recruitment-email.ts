@@ -1,0 +1,25 @@
+async function sendMail(to: string, subject: string, html: string) {
+  if (!process.env.RESEND_API_KEY || !process.env.EMAIL_FROM) return;
+
+  await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ from: process.env.EMAIL_FROM, to: [to], subject, html }),
+  }).catch(() => undefined);
+}
+
+export async function sendApplicationReceivedEmail(to: string, fullName: string, referenceNumber: string) {
+  await sendMail(
+    to,
+    'تم استلام طلب التوظيف',
+    `
+      <p>مرحبًا ${fullName}،</p>
+      <p>تم استلام طلبك بنجاح.</p>
+      <p>رقم الطلب: <strong>${referenceNumber}</strong></p>
+      <p>يرجى الاحتفاظ بهذا الرقم لمتابعة حالة طلبك.</p>
+    `,
+  );
+}

@@ -6,15 +6,29 @@ const publicAuthRoutes = new Set([
   'auth/logout/route.ts',
   'auth/status/route.ts',
   'auth/setup/route.ts',
-  'auth/password-reset/route.ts'
+  'auth/password-reset/route.ts',
+  // Public recruitment listings: published jobs are meant for anonymous candidates.
+  'jobs/route.ts',
+  'jobs/[slug]/route.ts',
 ]);
 const selfServiceRoutes = new Set([
   'auth/me/route.ts',
   'notifications/route.ts',
-  'portal/route.ts'
+  'portal/route.ts',
 ]);
 const delegatedGuardRoutes = new Map([
   ['candidates/route.ts', ['listCandidates(', 'createCandidate(', 'convertCandidateToEmployee(']],
+  // POST is a public, rate-limited application submission by design; GET (admin listing) is guarded via listApplicationsForAdmin(.
+  ['applications/route.ts', ['listApplicationsForAdmin(']],
+  ['applications/[id]/route.ts', ['getApplicationForAdmin(']],
+  ['applications/[id]/cv/route.ts', ['getApplicationCvForAdmin(']],
+  ['applications/[id]/notes/route.ts', ['addApplicationNote(']],
+  ['applications/[id]/status/route.ts', ['changeApplicationStatus(']],
+  ['recruitment/dashboard/route.ts', ['getRecruitmentDashboard(']],
+  ['recruitment/jobs/route.ts', ['listJobsForAdmin(', 'createJob(']],
+  ['recruitment/jobs/[id]/route.ts', ['getJobForAdmin(', 'updateJob(']],
+  ['recruitment/jobs/[id]/status/route.ts', ['changeJobStatus(']],
+  ['recruitment/jobs/[id]/duplicate/route.ts', ['duplicateJob(']],
 ]);
 function walk(dir){
   return fs.readdirSync(dir,{withFileTypes:true}).flatMap((entry)=>{

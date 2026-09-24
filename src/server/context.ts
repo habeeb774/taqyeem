@@ -50,6 +50,16 @@ export function jsonError(error: unknown) {
     'ID_REQUIRED',
     'CANNOT_DISABLE_SELF',
     'target_change_reason_required',
+    'CONSENT_REQUIRED',
+    'CV_REQUIRED',
+    'JOB_NOT_AVAILABLE',
+    'DUPLICATE_APPLICATION',
+    'UNSUPPORTED_CV_TYPE',
+    'CV_TOO_LARGE',
+    'RATE_LIMITED',
+    'ORGANIZATION_NOT_FOUND',
+    'SLUG_ALREADY_EXISTS',
+    'OBJECT_STORAGE_NOT_CONFIGURED',
   ]);
   if (known.has(message)) return { status, error: message };
   return { status: status >= 500 ? status : 400, error: 'REQUEST_FAILED' };
