@@ -116,10 +116,13 @@ export default function JobsPage() {
             }}
             aria-label="شعار السويد"
           />
-          <div>
+          <div style={{ flex: 1 }}>
             <p style={{ margin: 0, fontSize: 15, fontWeight: 600 }}>شركة السويد التجارية</p>
             <p style={{ margin: 0, color: 'rgba(255,255,255,.7)', fontSize: 11 }}>التوظيف والفرص الوظيفية</p>
           </div>
+          <a href="/login" style={{ color: 'rgba(255,255,255,.8)', fontSize: 12.5, textDecoration: 'none', whiteSpace: 'nowrap' }}>
+            دخول الموظفين
+          </a>
         </div>
         <div style={{ maxWidth: 1000, margin: '0 auto', padding: '10px 24px 36px' }}>
           <h1 style={{ margin: 0, fontSize: 28, fontWeight: 500 }}>انضم إلى فريقنا</h1>

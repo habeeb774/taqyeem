@@ -18,14 +18,16 @@ async function logout() {
   redirect("/login");
 }
 
-// Authentication is the application entry point. The system selector is
-// reached only after the user has authenticated inside the legacy shell.
+// The public jobs board is the entry point for anonymous visitors (e.g. the
+// company domain pointing here). Only authenticated staff see the internal
+// system selector; unauthenticated visitors land on /jobs instead of a
+// login prompt.
 export default async function Home() {
   let user: Awaited<ReturnType<typeof requireUser>>;
   try {
     user = await requireUser();
   } catch {
-    redirect("/login");
+    redirect("/jobs");
   }
 
   const can = (permission: string) => user.permissions.includes(permission);
