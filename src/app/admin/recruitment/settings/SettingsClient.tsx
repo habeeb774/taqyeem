@@ -7,6 +7,8 @@ type Settings = {
   aboutParagraphs: string[];
   benefits: string[];
   storeUrl: string | null;
+  jobsSidebarImageUrl: string | null;
+  jobDetailImageUrl: string | null;
 };
 
 export default function SettingsClient() {
@@ -15,6 +17,7 @@ export default function SettingsClient() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [saved, setSaved] = useState(false);
+  const [uploading, setUploading] = useState<'jobs_sidebar' | 'job_detail' | null>(null);
 
   useEffect(() => {
     fetch('/api/app/recruitment/settings')
@@ -61,6 +64,28 @@ export default function SettingsClient() {
     setSettings({ ...settings, benefits: settings.benefits.filter((_, i) => i !== index) });
   }
 
+  async function uploadImage(slot: 'jobs_sidebar' | 'job_detail', file: File) {
+    if (!settings) return;
+    setUploading(slot);
+    setError('');
+    try {
+      const formData = new FormData();
+      formData.set('file', file);
+      formData.set('slot', slot);
+      const res = await fetch('/api/app/recruitment/settings/images', { method: 'POST', body: formData });
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.error?.message || 'تعذر رفع الصورة');
+      setSettings({
+        ...settings,
+        ...(slot === 'jobs_sidebar' ? { jobsSidebarImageUrl: data.url } : { jobDetailImageUrl: data.url }),
+      });
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setUploading(null);
+    }
+  }
+
   async function save() {
     if (!settings) return;
     setSaving(true);
@@ -72,6 +97,8 @@ export default function SettingsClient() {
         aboutParagraphs: settings.aboutParagraphs.map((p) => p.trim()).filter(Boolean),
         benefits: settings.benefits.map((b) => b.trim()).filter(Boolean),
         storeUrl: settings.storeUrl?.trim() || null,
+        jobsSidebarImageUrl: settings.jobsSidebarImageUrl || null,
+        jobDetailImageUrl: settings.jobDetailImageUrl || null,
       };
       const res = await fetch('/api/app/recruitment/settings', {
         method: 'PATCH',
@@ -131,6 +158,26 @@ export default function SettingsClient() {
             </div>
 
             <div style={{ background: '#fff', border: '1px solid #e0e0e0', borderRadius: 16, padding: 20, marginBottom: 16 }}>
+              <h2 style={{ margin: '0 0 14px', fontSize: 15, fontWeight: 500 }}>صور صفحة الوظائف</h2>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                <ImageField
+                  label="صورة الشريط الجانبي (قائمة الوظائف)"
+                  url={settings.jobsSidebarImageUrl}
+                  uploading={uploading === 'jobs_sidebar'}
+                  onUpload={(file) => uploadImage('jobs_sidebar', file)}
+                  onRemove={() => setSettings({ ...settings, jobsSidebarImageUrl: null })}
+                />
+                <ImageField
+                  label="صورة صفحة تفاصيل الشاغر"
+                  url={settings.jobDetailImageUrl}
+                  uploading={uploading === 'job_detail'}
+                  onUpload={(file) => uploadImage('job_detail', file)}
+                  onRemove={() => setSettings({ ...settings, jobDetailImageUrl: null })}
+                />
+              </div>
+            </div>
+
+            <div style={{ background: '#fff', border: '1px solid #e0e0e0', borderRadius: 16, padding: 20, marginBottom: 16 }}>
               <h2 style={{ margin: '0 0 14px', fontSize: 15, fontWeight: 500 }}>تعريف الشركة</h2>
               <div style={{ display: 'grid', gap: 10 }}>
                 {settings.aboutParagraphs.map((p, i) => (
@@ -156,7 +203,11 @@ export default function SettingsClient() {
               <button onClick={addBenefit} style={addBtnStyle}>+ إضافة ميزة</button>
             </div>
 
-            <button onClick={save} disabled={saving} style={{ border: 0, borderRadius: 10, padding: '11px 22px', background: '#173BD1', color: '#fff', fontSize: 13, fontWeight: 500, cursor: 'pointer', opacity: saving ? 0.6 : 1 }}>
+            <button
+              onClick={save}
+              disabled={saving}
+              style={{ border: 0, borderRadius: 10, padding: '11px 22px', background: '#173BD1', color: '#fff', fontSize: 13, fontWeight: 500, cursor: 'pointer', opacity: saving ? 0.6 : 1 }}
+            >
               {saving ? 'جارٍ الحفظ...' : 'حفظ التغييرات'}
             </button>
           </>
@@ -175,6 +226,57 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
     <div style={{ marginBottom: 12, display: 'flex', flexDirection: 'column', gap: 5 }}>
       <label style={{ fontSize: 11, color: '#888', fontWeight: 400 }}>{label}</label>
       {children}
+    </div>
+  );
+}
+
+function ImageField({
+  label,
+  url,
+  uploading,
+  onUpload,
+  onRemove,
+}: {
+  label: string;
+  url: string | null;
+  uploading: boolean;
+  onUpload: (file: File) => void;
+  onRemove: () => void;
+}) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <label style={{ fontSize: 11, color: '#888', fontWeight: 400 }}>{label}</label>
+      {url ? (
+        <div
+          style={{
+            width: '100%', aspectRatio: '3 / 4', borderRadius: 10, border: '1px solid #e0e0e0',
+            backgroundImage: `url('${url}')`, backgroundSize: 'cover', backgroundPosition: 'center',
+          }}
+        />
+      ) : (
+        <div style={{ width: '100%', aspectRatio: '3 / 4', borderRadius: 10, border: '1px dashed #dcdfe6', display: 'grid', placeItems: 'center', color: '#aaa', fontSize: 12 }}>
+          لا توجد صورة
+        </div>
+      )}
+      <div style={{ display: 'flex', gap: 8 }}>
+        <label style={{ ...addBtnStyle, marginTop: 0, cursor: uploading ? 'default' : 'pointer', opacity: uploading ? 0.6 : 1 }}>
+          {uploading ? 'جارٍ الرفع...' : url ? 'استبدال الصورة' : 'رفع صورة'}
+          <input
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            disabled={uploading}
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) onUpload(file);
+              e.target.value = '';
+            }}
+            style={{ display: 'none' }}
+          />
+        </label>
+        {url && (
+          <button onClick={onRemove} style={removeBtnStyle}>حذف</button>
+        )}
+      </div>
     </div>
   );
 }

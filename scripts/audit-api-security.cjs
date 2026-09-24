@@ -10,6 +10,10 @@ const publicAuthRoutes = new Set([
   // Public recruitment listings: published jobs are meant for anonymous candidates.
   'jobs/route.ts',
   'jobs/[slug]/route.ts',
+  // Public recruitment page copy/settings, consumed cross-origin by the public jobs site.
+  'jobs/settings/route.ts',
+  // Public recruitment page images (sidebar/detail), served without auth like a static asset.
+  'jobs/images/[...key]/route.ts',
 ]);
 const selfServiceRoutes = new Set([
   'auth/me/route.ts',
@@ -29,6 +33,7 @@ const delegatedGuardRoutes = new Map([
   ['recruitment/jobs/[id]/route.ts', ['getJobForAdmin(', 'updateJob(']],
   ['recruitment/jobs/[id]/status/route.ts', ['changeJobStatus(']],
   ['recruitment/jobs/[id]/duplicate/route.ts', ['duplicateJob(']],
+  ['recruitment/settings/route.ts', ['getRecruitmentSettingsForAdmin(', 'updateRecruitmentSettings(']],
 ]);
 function walk(dir){
   return fs.readdirSync(dir,{withFileTypes:true}).flatMap((entry)=>{

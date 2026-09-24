@@ -68,3 +68,47 @@ export async function readCv(key: string) {
     contentType: object.ContentType || 'application/octet-stream',
   };
 }
+
+const imageTypes = new Set(['image/png', 'image/jpeg', 'image/webp']);
+const imageExtensions: Record<string, string> = {
+  'image/png': 'png',
+  'image/jpeg': 'jpg',
+  'image/webp': 'webp',
+};
+const MAX_PUBLIC_IMAGE_SIZE = 5 * 1024 * 1024;
+export const PUBLIC_IMAGE_PREFIX = 'recruitment/public-images';
+
+export type RecruitmentImageSlot = 'jobs_sidebar' | 'job_detail';
+
+export async function uploadRecruitmentPageImage(file: File, organizationId: string, slot: RecruitmentImageSlot) {
+  if (!imageTypes.has(file.type)) {
+    throw Object.assign(new Error('UNSUPPORTED_IMAGE_TYPE'), { status: 415 });
+  }
+  if (file.size <= 0 || file.size > MAX_PUBLIC_IMAGE_SIZE) {
+    throw Object.assign(new Error('IMAGE_TOO_LARGE'), { status: 413 });
+  }
+
+  const key = `organizations/${organizationId}/${PUBLIC_IMAGE_PREFIX}/${slot}/${randomUUID()}.${imageExtensions[file.type]}`;
+  const bytes = Buffer.from(await file.arrayBuffer());
+
+  await client().send(
+    new PutObjectCommand({
+      Bucket: CV_BUCKET,
+      Key: key,
+      Body: bytes,
+      ContentType: file.type,
+      CacheControl: 'public, max-age=31536000, immutable',
+    }),
+  );
+
+  return { key, url: `/api/app/jobs/images/${key.split('/').map(encodeURIComponent).join('/')}` };
+}
+
+export async function readRecruitmentPageImage(key: string) {
+  const object = await client().send(new GetObjectCommand({ Bucket: CV_BUCKET, Key: key }));
+
+  return {
+    bytes: await object.Body?.transformToByteArray(),
+    contentType: object.ContentType || 'application/octet-stream',
+  };
+}

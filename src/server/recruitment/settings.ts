@@ -9,13 +9,19 @@ export type RecruitmentPageSettings = {
   aboutParagraphs: string[];
   benefits: string[];
   storeUrl: string | null;
+  jobsSidebarImageUrl: string | null;
+  jobDetailImageUrl: string | null;
 };
 
 const DEFAULT_SETTINGS: RecruitmentPageSettings = {
   heroTitle: 'وظائف السويد',
   aboutParagraphs: [
-    'تُعدّ شركة إبراهيم عبدالله السويد التجارية إحدى الشركات السعودية الرائدة في توريد مستلزمات السباكة والأدوات الصحية ومواد البناء والكهرباء، وتخدم المشاريع السكنية والتجارية والصناعية في مختلف مناطق المملكة العربية السعودية، من مرحلة التأسيس حتى التشطيب النهائي.',
-    'وقد تأسّست الشركة عام 1978م، ورسّخت خلال أكثر من خمسة وأربعين عامًا مكانتها مزوّدًا موثوقًا في القطاع، اعتمادًا على شبكة شراكات مع عدد من العلامات التجارية العالمية، وفريق عمل مؤهّل يضع رضا العملاء في مقدمة أولوياته.',
+    'تُعدّ شركة إبراهيم عبدالله السويد التجارية إحدى الشركات السعودية الرائدة في توريد مستلزمات السباكة '
+      + 'والأدوات الصحية ومواد البناء والكهرباء، وتخدم المشاريع السكنية والتجارية والصناعية في مختلف '
+      + 'مناطق المملكة العربية السعودية، من مرحلة التأسيس حتى التشطيب النهائي.',
+    'وقد تأسّست الشركة عام 1978م، ورسّخت خلال أكثر من خمسة وأربعين عامًا مكانتها مزوّدًا موثوقًا في '
+      + 'القطاع، اعتمادًا على شبكة شراكات مع عدد من العلامات التجارية العالمية، وفريق عمل مؤهّل يضع '
+      + 'رضا العملاء في مقدمة أولوياته.',
     'وفي إطار خطط التوسّع التشغيلي، تستقطب الشركة الكفاءات المؤهّلة للانضمام إلى إداراتها الفنية والتشغيلية والإدارية، وتوفّر لها بيئة عمل مستقرة ومسارات تطوير مهني واضحة.',
   ],
   benefits: [
@@ -26,6 +32,8 @@ const DEFAULT_SETTINGS: RecruitmentPageSettings = {
     'بيئة عمل تعتمد الأنظمة الرقمية في جميع الإجراءات.',
   ],
   storeUrl: null,
+  jobsSidebarImageUrl: null,
+  jobDetailImageUrl: null,
 };
 
 function normalize(value: unknown): RecruitmentPageSettings {
@@ -36,6 +44,8 @@ function normalize(value: unknown): RecruitmentPageSettings {
     aboutParagraphs: Array.isArray(v.aboutParagraphs) && v.aboutParagraphs.length ? v.aboutParagraphs.filter((p) => typeof p === 'string') : DEFAULT_SETTINGS.aboutParagraphs,
     benefits: Array.isArray(v.benefits) && v.benefits.length ? v.benefits.filter((b) => typeof b === 'string') : DEFAULT_SETTINGS.benefits,
     storeUrl: typeof v.storeUrl === 'string' && v.storeUrl.trim() ? v.storeUrl : null,
+    jobsSidebarImageUrl: typeof v.jobsSidebarImageUrl === 'string' && v.jobsSidebarImageUrl.trim() ? v.jobsSidebarImageUrl : null,
+    jobDetailImageUrl: typeof v.jobDetailImageUrl === 'string' && v.jobDetailImageUrl.trim() ? v.jobDetailImageUrl : null,
   };
 }
 
