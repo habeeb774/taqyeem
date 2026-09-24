@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { signOut } from "@/auth";
 import { pool } from "@/db";
 import { requireUser } from "@/server/context";
+import { PageHeader } from "@/components/ui";
 
 async function logout() {
   "use server";
@@ -37,35 +38,35 @@ export default async function Home() {
       description: "إدارة تقييم أداء الموظفين ودورات التقييم",
       href: "/assessment",
       icon: "◔",
-      color: "#2445d9",
+      color: "var(--dst-color-primary)",
     },
     can("forms.view") && {
       title: "النماذج الإدارية",
       description: "إنشاء النماذج والمستندات وحفظ سجلاتها",
       href: "/forms",
       icon: "▤",
-      color: "#0f766e",
+      color: "var(--dst-color-accent-1)",
     },
     can("design_templates.view") && {
       title: "نظام التصاميم",
       description: "إدارة قوالب التصميم ومحتواها",
       href: "/design-templates",
       icon: "✦",
-      color: "#7c3aed",
+      color: "var(--dst-color-accent-2)",
     },
     can("recruitment.jobs.view") && {
       title: "نظام التوظيف",
       description: "إدارة الوظائف الشاغرة وطلبات المتقدمين",
       href: "/admin/recruitment",
       icon: "👥",
-      color: "#c2410c",
+      color: "var(--dst-color-accent-3)",
     },
     user.user.employeeId && {
       title: "تقييمي",
       description: "عرض تقييمك الشخصي وطلب مراجعة عند الحاجة",
       href: "/my-evaluations",
       icon: "✓",
-      color: "#16a34a",
+      color: "var(--dst-color-accent-4)",
     },
   ].filter(Boolean) as {
     title: string;
@@ -80,23 +81,15 @@ export default async function Home() {
       dir="rtl"
       style={{
         minHeight: "100vh",
-        background: "#fbfcfe",
-        color: "#0d0d0d",
+        background: "var(--dst-color-bg-page)",
+        color: "var(--dst-color-text)",
         fontFamily: "var(--app-font)",
       }}
     >
-      <header
-        style={{
-          height: 64,
-          background: "#173BD1",
-          color: "#fff",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          padding: "0 34px",
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+      <PageHeader
+        eyebrow="أنظمة الموارد والتشغيل"
+        title="منصة تقييم"
+        brandMark={
           <div
             style={{
               width: 36,
@@ -104,44 +97,32 @@ export default async function Home() {
               borderRadius: 12,
               border: "1px solid rgba(255,255,255,.38)",
               background: "rgba(255,255,255,.13) url('/brand-logo.png') center/23px 29px no-repeat",
-              display: "grid",
-              placeItems: "center",
               filter: "brightness(0) invert(1)",
             }}
             aria-label="شعار السويد"
-          >
-            <span style={{ opacity: 0 }}>ت</span>
-          </div>
-          <div>
-            <p style={{ margin: 0, fontSize: 15, fontWeight: 600 }}>
-              منصة تقييم
-            </p>
-            <p
-              style={{ margin: 0, color: "rgba(255,255,255,.7)", fontSize: 11 }}
+          />
+        }
+        nav={
+          <form action={logout}>
+            <button
+              type="submit"
+              style={{
+                height: 38,
+                border: "1px solid rgba(255,255,255,.32)",
+                borderRadius: 10,
+                background: "rgba(255,255,255,.1)",
+                color: "#fff",
+                padding: "0 14px",
+                fontFamily: "var(--app-font)",
+                fontSize: 13,
+                cursor: "pointer",
+              }}
             >
-              أنظمة الموارد والتشغيل
-            </p>
-          </div>
-        </div>
-        <form action={logout}>
-          <button
-            type="submit"
-            style={{
-              height: 38,
-              border: "1px solid rgba(255,255,255,.32)",
-              borderRadius: 10,
-              background: "rgba(255,255,255,.1)",
-              color: "#fff",
-              padding: "0 14px",
-              fontFamily: "var(--app-font)",
-              fontSize: 13,
-              cursor: "pointer",
-            }}
-          >
-            خروج
-          </button>
-        </form>
-      </header>
+              خروج
+            </button>
+          </form>
+        }
+      />
       <section
         style={{
           width: "min(900px, 100%)",
@@ -155,7 +136,7 @@ export default async function Home() {
             style={{
               display: "inline-block",
               marginBottom: 18,
-              color: "#173BD1",
+              color: "var(--dst-color-primary)",
               background: "#eef2fd",
               borderRadius: 999,
               padding: "6px 14px",
@@ -167,7 +148,7 @@ export default async function Home() {
           <h1 style={{ margin: "0 0 16px", fontSize: 28, fontWeight: 500 }}>
             اختر النظام
           </h1>
-          <p style={{ margin: 0, color: "#888", fontSize: 14, lineHeight: 2 }}>
+          <p style={{ margin: 0, color: "var(--dst-color-text-muted)", fontSize: 14, lineHeight: 2 }}>
             مرحبًا، {user.user.name || user.user.email}. انتقل إلى أحد الأنظمة
             المتاحة لك.
           </p>
@@ -184,16 +165,14 @@ export default async function Home() {
             <a
               key={system.href}
               href={system.href}
+              className="dst-card"
               style={{
                 minHeight: 294,
                 padding: 20,
                 boxSizing: "border-box",
                 textDecoration: "none",
-                color: "#0d0d0d",
-                background: "#fff",
-                border: "1px solid #e0e0e0",
+                color: "var(--dst-color-text)",
                 borderRadius: 20,
-                boxShadow: "0 1px 4px rgba(0,0,0,.07)",
                 display: "flex",
                 flexDirection: "column",
               }}
@@ -244,7 +223,7 @@ export default async function Home() {
                 <p
                   style={{
                     margin: 0,
-                    color: "#888",
+                    color: "var(--dst-color-text-muted)",
                     fontSize: 12,
                     lineHeight: 1.75,
                   }}
@@ -274,19 +253,7 @@ export default async function Home() {
                   margin: "14px 0 16px",
                 }}
               />
-              <span
-                style={{
-                  width: "100%",
-                  height: 45,
-                  color: "#fff",
-                  background: "#173BD1",
-                  borderRadius: 13,
-                  display: "grid",
-                  placeItems: "center",
-                  fontSize: 15,
-                  fontWeight: 500,
-                }}
-              >
+              <span className="dst-btn dst-btn--primary dst-btn--md" style={{ width: "100%" }}>
                 دخول النظام
               </span>
             </a>

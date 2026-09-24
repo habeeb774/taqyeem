@@ -5,17 +5,17 @@ export function PageHeader({
   title,
   brandMark,
   nav,
-  maxWidth = 1000,
+  maxWidth,
 }: {
   eyebrow?: string;
   title: string;
   brandMark?: ReactNode;
   nav?: ReactNode;
-  maxWidth?: number;
+  maxWidth?: number | null;
 }) {
   return (
     <header className="dst-page-header">
-      <div className="dst-page-header__inner" style={{ maxWidth }}>
+      <div className="dst-page-header__inner" style={maxWidth ? { maxWidth } : undefined}>
         <div className="dst-page-header__brand">
           {brandMark}
           <div>

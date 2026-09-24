@@ -7,7 +7,7 @@ const styles = `
   body {
     margin: 0;
     min-height: 100vh;
-    background: #2445d9;
+    background: #173bd1;
     font-family: var(--app-font);
     color: #17213c;
     display: grid;
@@ -23,7 +23,7 @@ const styles = `
     background: #fff;
     border-radius: 28px;
     padding: 28px 30px;
-    box-shadow: 0 20px 45px #10259b55;
+    box-shadow: 0 20px 45px #102a9e55;
     text-align: right;
   }
   .title { font-weight: 300; font-size: 18px; margin-bottom: 20px; }
@@ -39,7 +39,7 @@ const styles = `
     direction: ltr;
     text-align: left;
   }
-  .input:focus { border-color: #2445d9; box-shadow: 0 0 0 3px #2445d918; }
+  .input:focus { border-color: #173bd1; box-shadow: 0 0 0 3px #173bd118; }
   .remember {
     display: flex;
     align-items: center;
@@ -54,7 +54,7 @@ const styles = `
   .remember input {
     width: 16px;
     height: 16px;
-    accent-color: #2445d9;
+    accent-color: #173bd1;
     cursor: pointer;
   }
   .hint { font-size: 12px; color: #8791a6; text-align: center; margin: 22px 0; }
@@ -63,7 +63,7 @@ const styles = `
     height: 50px;
     border: 0;
     border-radius: 14px;
-    background: #2445d9;
+    background: #173bd1;
     color: #fff;
     font-size: 16px;
     font-weight: 300;
@@ -71,7 +71,7 @@ const styles = `
   }
   .btn:disabled { opacity: .65; cursor: wait; }
   .err { min-height: 18px; color: #c43232; font-size: 12px; text-align: center; margin: 10px 0 0; }
-  .forgot { display: block; margin: 13px auto 0; border: 0; background: none; color: #2445d9; cursor: pointer; font-size: 13px; }
+  .forgot { display: block; margin: 13px auto 0; border: 0; background: none; color: #173bd1; cursor: pointer; font-size: 13px; }
   @media (max-width: 480px) {
     body { padding: 16px; }
     .card { padding: 24px 20px; border-radius: 22px; }
