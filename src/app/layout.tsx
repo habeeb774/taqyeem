@@ -1,5 +1,5 @@
 import './design-system.css';
-import { GOOGLE_FONTS_URL, getBrandingOverrideCss } from '@/server/branding';
+import { FONT_STYLESHEET_URL, getBrandingOverrideCss } from '@/server/branding';
 import { BrandingSync } from '@/components/BrandingSync';
 
 export const dynamic = 'force-dynamic';
@@ -12,9 +12,7 @@ export default async function RootLayout({children}:{children:React.ReactNode}){
       <head>
         <link href="/unified-font.css?v=20260924-original" rel="stylesheet" />
         <link href="/system-topbar.css" rel="stylesheet" />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href={GOOGLE_FONTS_URL} rel="stylesheet" />
+        <link href={FONT_STYLESHEET_URL} rel="stylesheet" />
         <style dangerouslySetInnerHTML={{ __html: overrideCss }} />
       </head>
       <body>

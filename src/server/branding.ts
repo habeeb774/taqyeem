@@ -69,17 +69,23 @@ export async function getBrandingOverrideCss(): Promise<string> {
     `--ff: ${fontStack} !important;`,
     branding.logoUrl ? `--brand-logo-url: url('${branding.logoUrl}') !important;` : '',
   ].filter(Boolean).join(' ');
-  return `:root{${overrides}}`;
+  // The universal selector guarantees every element uses the chosen font
+  // regardless of which selector list (unified-font.css's fixed tag list,
+  // the legacy templates' own scattered var(--ff) rules, component-level
+  // styles, etc.) would otherwise have applied — no element can be missed.
+  return `:root{${overrides}} *{font-family:var(--app-font) !important}`;
 }
 
-export const GOOGLE_FONTS_URL =
-  'https://fonts.googleapis.com/css2?family=Alexandria:wght@300;400;500;600;700&family=Cairo:wght@300;400;500;600;700&family=Tajawal:wght@300;400;500;700&display=swap';
+// Self-hosted (public/fonts) instead of Google Fonts: a blocked or slow
+// external font CDN (corporate/ISP filtering, privacy extensions) used to
+// make the chosen font silently fail to load and fall back to the default,
+// which looked identical to "nothing changed." Self-hosting removes that
+// external dependency entirely.
+export const FONT_STYLESHEET_URL = '/dynamic-fonts.css';
 
 export async function getBrandingHeadHtml(): Promise<string> {
   return [
-    '<link rel="preconnect" href="https://fonts.googleapis.com">',
-    '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>',
-    `<link rel="stylesheet" href="${GOOGLE_FONTS_URL}">`,
+    `<link rel="stylesheet" href="${FONT_STYLESHEET_URL}">`,
     `<style>${await getBrandingOverrideCss()}</style>`,
   ].join('');
 }
