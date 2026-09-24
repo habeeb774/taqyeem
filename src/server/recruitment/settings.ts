@@ -83,3 +83,57 @@ export async function updateRecruitmentSettings(
   );
   return value;
 }
+
+const NOTIFICATIONS_KEY = 'recruitment.notifications';
+
+export type RecruitmentNotificationSettings = {
+  hrNotificationEmail: string | null;
+};
+
+function normalizeNotifications(value: unknown): RecruitmentNotificationSettings {
+  if (!value || typeof value !== 'object') return { hrNotificationEmail: null };
+  const v = value as Partial<RecruitmentNotificationSettings>;
+  return {
+    hrNotificationEmail: typeof v.hrNotificationEmail === 'string' && v.hrNotificationEmail.trim()
+      ? v.hrNotificationEmail.trim()
+      : null,
+  };
+}
+
+export async function getHrNotificationEmail(): Promise<string | null> {
+  const organizationId = await resolveDefaultOrganizationId();
+  const result = await pool.query(
+    `select value from public.system_settings where organization_id=$1::uuid and key=$2 limit 1`,
+    [organizationId, NOTIFICATIONS_KEY],
+  );
+  const stored = normalizeNotifications(result.rows[0]?.value).hrNotificationEmail;
+  return stored || process.env.HR_NOTIFICATION_EMAIL || null;
+}
+
+export async function getNotificationSettingsForAdmin(
+  context: SecurityContext,
+): Promise<RecruitmentNotificationSettings> {
+  must(context, 'recruitment.jobs.view');
+  const result = await pool.query(
+    `select value from public.system_settings where organization_id=$1::uuid and key=$2 limit 1`,
+    [context.organizationId, NOTIFICATIONS_KEY],
+  );
+  return normalizeNotifications(result.rows[0]?.value);
+}
+
+export async function updateNotificationSettings(
+  context: SecurityContext,
+  input: RecruitmentNotificationSettings,
+): Promise<RecruitmentNotificationSettings> {
+  must(context, 'recruitment.jobs.manage');
+  const value = normalizeNotifications(input);
+  await pool.query(
+    `
+      insert into public.system_settings(organization_id,key,value,description,updated_by)
+      values($1::uuid,$2,$3::jsonb,'بريد إشعارات المتقدمين الجدد',$4::uuid)
+      on conflict(organization_id,key) do update set value=excluded.value, updated_by=excluded.updated_by, updated_at=now()
+    `,
+    [context.organizationId, NOTIFICATIONS_KEY, JSON.stringify(value), context.user.id],
+  );
+  return value;
+}

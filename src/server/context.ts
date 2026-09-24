@@ -50,6 +50,7 @@ export function jsonError(error: unknown) {
     'ID_REQUIRED',
     'CANNOT_DISABLE_SELF',
     'target_change_reason_required',
+    'NOT_FOUND',
     'CONSENT_REQUIRED',
     'CV_REQUIRED',
     'JOB_NOT_AVAILABLE',

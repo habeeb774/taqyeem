@@ -82,6 +82,13 @@ export async function POST(request: NextRequest) {
 
     return jsonOk({ reference_number: application.reference_number, id: application.id }, { headers });
   } catch (error) {
+    const err = error as { message?: string; referenceNumber?: string; applicationStatus?: string };
+    if (err?.message === 'DUPLICATE_APPLICATION' && err.referenceNumber) {
+      return jsonOk(
+        { duplicate: true, reference_number: err.referenceNumber, status: err.applicationStatus },
+        { headers },
+      );
+    }
     const response = jsonFail(error);
     Object.entries(headers).forEach(([key, value]) => response.headers.set(key, value));
     return response;

@@ -14,6 +14,8 @@ const publicAuthRoutes = new Set([
   'jobs/settings/route.ts',
   // Public recruitment page images (sidebar/detail), served without auth like a static asset.
   'jobs/images/[...key]/route.ts',
+  // Public application status lookup; requires the caller to know both the reference number and the email on file.
+  'applications/track/route.ts',
 ]);
 const selfServiceRoutes = new Set([
   'auth/me/route.ts',
@@ -34,6 +36,7 @@ const delegatedGuardRoutes = new Map([
   ['recruitment/jobs/[id]/status/route.ts', ['changeJobStatus(']],
   ['recruitment/jobs/[id]/duplicate/route.ts', ['duplicateJob(']],
   ['recruitment/settings/route.ts', ['getRecruitmentSettingsForAdmin(', 'updateRecruitmentSettings(']],
+  ['recruitment/notifications/route.ts', ['getNotificationSettingsForAdmin(', 'updateNotificationSettings(']],
 ]);
 function walk(dir){
   return fs.readdirSync(dir,{withFileTypes:true}).flatMap((entry)=>{

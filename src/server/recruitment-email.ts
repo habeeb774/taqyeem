@@ -25,12 +25,12 @@ export async function sendApplicationReceivedEmail(to: string, fullName: string,
 }
 
 export async function sendNewApplicationHrNotification(
+  hrEmail: string | null,
   applicantName: string,
   referenceNumber: string,
   jobTitle: string | null,
   applicationId: string,
 ) {
-  const hrEmail = process.env.HR_NOTIFICATION_EMAIL;
   if (!hrEmail) return;
 
   await sendMail(

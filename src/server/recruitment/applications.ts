@@ -2,6 +2,7 @@ import { pool } from '@/db';
 import { must, type SecurityContext } from '@/db/queries/security';
 import { withNeonTransaction } from '@/lib/neon/admin';
 import { sendApplicationReceivedEmail, sendNewApplicationHrNotification } from '@/server/recruitment-email';
+import { getHrNotificationEmail } from '@/server/recruitment/settings';
 import { uploadCv } from '@/server/recruitment-storage';
 import { resolveDefaultOrganizationId } from './org';
 
@@ -34,14 +35,20 @@ export async function createApplication(input: ApplicationInput, cvFile: File) {
   }
 
   const duplicate = await pool.query(
-    `select 1 from public.job_applications
+    `select reference_number, status from public.job_applications
      where organization_id=$1::uuid and lower(email)=lower($2)
        and job_id is not distinct from $3::uuid
        and created_at >= now() - interval '${DUPLICATE_WINDOW_DAYS} days'
      limit 1`,
     [organizationId, input.email, input.jobId || null],
   );
-  if (duplicate.rows[0]) throw Object.assign(new Error('DUPLICATE_APPLICATION'), { status: 409 });
+  if (duplicate.rows[0]) {
+    throw Object.assign(new Error('DUPLICATE_APPLICATION'), {
+      status: 409,
+      referenceNumber: duplicate.rows[0].reference_number,
+      applicationStatus: duplicate.rows[0].status,
+    });
+  }
 
   const cv = await uploadCv(cvFile, organizationId);
 
@@ -93,12 +100,28 @@ export async function createApplication(input: ApplicationInput, cvFile: File) {
       const job = await pool.query(`select title_ar from public.jobs where id=$1::uuid limit 1`, [application.job_id]);
       jobTitle = job.rows[0]?.title_ar || null;
     }
+    const hrEmail = await getHrNotificationEmail();
     await Promise.all([
       sendApplicationReceivedEmail(application.email, application.full_name, application.reference_number),
-      sendNewApplicationHrNotification(application.full_name, application.reference_number, jobTitle, application.id),
+      sendNewApplicationHrNotification(hrEmail, application.full_name, application.reference_number, jobTitle, application.id),
     ]);
     return application;
   });
+}
+
+export async function trackApplication(referenceNumber: string, email: string) {
+  const result = await pool.query(
+    `
+      select a.reference_number, a.status, a.created_at, j.title_ar job_title
+      from public.job_applications a
+      left join public.jobs j on j.id = a.job_id
+      where a.reference_number=$1 and lower(a.email)=lower($2)
+      limit 1
+    `,
+    [referenceNumber, email],
+  );
+  if (!result.rows[0]) throw Object.assign(new Error('NOT_FOUND'), { status: 404 });
+  return result.rows[0];
 }
 
 export async function listApplicationsForAdmin(

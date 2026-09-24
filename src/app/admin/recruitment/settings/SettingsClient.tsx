@@ -19,6 +19,12 @@ export default function SettingsClient() {
   const [saved, setSaved] = useState(false);
   const [uploading, setUploading] = useState<'jobs_sidebar' | 'job_detail' | null>(null);
 
+  const [hrEmail, setHrEmail] = useState('');
+  const [notificationsLoading, setNotificationsLoading] = useState(true);
+  const [notificationsSaving, setNotificationsSaving] = useState(false);
+  const [notificationsError, setNotificationsError] = useState('');
+  const [notificationsSaved, setNotificationsSaved] = useState(false);
+
   useEffect(() => {
     fetch('/api/app/recruitment/settings')
       .then((r) => r.json())
@@ -28,7 +34,38 @@ export default function SettingsClient() {
       })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
+
+    fetch('/api/app/recruitment/notifications')
+      .then((r) => r.json())
+      .then((data) => {
+        if (!data.ok) throw new Error(data.error?.message || 'تعذر تحميل إعدادات الإشعارات');
+        setHrEmail(data.settings.hrNotificationEmail || '');
+      })
+      .catch((e) => setNotificationsError(e.message))
+      .finally(() => setNotificationsLoading(false));
   }, []);
+
+  async function saveNotifications() {
+    setNotificationsSaving(true);
+    setNotificationsError('');
+    setNotificationsSaved(false);
+    try {
+      const res = await fetch('/api/app/recruitment/notifications', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ hrNotificationEmail: hrEmail.trim() || null }),
+      });
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.error?.message || 'تعذر الحفظ');
+      setHrEmail(data.settings.hrNotificationEmail || '');
+      setNotificationsSaved(true);
+      setTimeout(() => setNotificationsSaved(false), 3000);
+    } catch (e: any) {
+      setNotificationsError(e.message);
+    } finally {
+      setNotificationsSaving(false);
+    }
+  }
 
   function updateParagraph(index: number, value: string) {
     if (!settings) return;
@@ -141,6 +178,34 @@ export default function SettingsClient() {
           <>
             {error && <p style={{ color: '#d14343', fontSize: 12 }}>{error}</p>}
             {saved && <p style={{ color: '#169b62', fontSize: 12 }}>تم الحفظ بنجاح.</p>}
+
+            <div style={{ background: '#fff', border: '1px solid #e0e0e0', borderRadius: 16, padding: 20, marginBottom: 16 }}>
+              <h2 style={{ margin: '0 0 14px', fontSize: 15, fontWeight: 500 }}>إشعارات المتقدمين الجدد</h2>
+              {notificationsLoading ? (
+                <p style={{ color: '#888', fontSize: 12 }}>جارٍ التحميل...</p>
+              ) : (
+                <>
+                  {notificationsError && <p style={{ color: '#d14343', fontSize: 12 }}>{notificationsError}</p>}
+                  {notificationsSaved && <p style={{ color: '#169b62', fontSize: 12 }}>تم الحفظ بنجاح.</p>}
+                  <Field label="البريد الإلكتروني لإشعار الموارد البشرية عند وجود متقدم جديد (اختياري)">
+                    <input
+                      type="email"
+                      placeholder="hr@alsweed.sa"
+                      value={hrEmail}
+                      onChange={(e) => setHrEmail(e.target.value)}
+                      style={inputStyle}
+                    />
+                  </Field>
+                  <button
+                    onClick={saveNotifications}
+                    disabled={notificationsSaving}
+                    style={{ border: 0, borderRadius: 10, padding: '9px 18px', background: '#173BD1', color: '#fff', fontSize: 12.5, fontWeight: 500, cursor: 'pointer', opacity: notificationsSaving ? 0.6 : 1 }}
+                  >
+                    {notificationsSaving ? 'جارٍ الحفظ...' : 'حفظ بريد الإشعارات'}
+                  </button>
+                </>
+              )}
+            </div>
 
             <div style={{ background: '#fff', border: '1px solid #e0e0e0', borderRadius: 16, padding: 20, marginBottom: 16 }}>
               <h2 style={{ margin: '0 0 14px', fontSize: 15, fontWeight: 500 }}>العنوان الرئيسي وروابط المتجر</h2>
