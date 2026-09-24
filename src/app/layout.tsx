@@ -4,8 +4,8 @@ import { FONT_STACKS, getPublicBranding } from '@/server/branding';
 export default async function RootLayout({children}:{children:React.ReactNode}){
   const branding = await getPublicBranding();
   const overrides = [
-    `--app-font: ${FONT_STACKS[branding.fontChoice]};`,
-    branding.logoUrl ? `--brand-logo-url: url('${branding.logoUrl}');` : '',
+    `--app-font: ${FONT_STACKS[branding.fontChoice]} !important;`,
+    branding.logoUrl ? `--brand-logo-url: url('${branding.logoUrl}') !important;` : '',
   ].filter(Boolean).join(' ');
 
   return (
