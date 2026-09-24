@@ -32,7 +32,7 @@ export type BrandingSettings = {
 const DEFAULT_BRANDING: BrandingSettings = {
   companyName: 'شركة السويد التجارية',
   logoUrl: null,
-  fontChoice: 'sans',
+  fontChoice: 'tajawal',
 };
 
 function normalize(value: unknown): BrandingSettings {

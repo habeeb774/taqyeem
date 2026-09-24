@@ -1,5 +1,8 @@
 import './design-system.css';
 import { GOOGLE_FONTS_URL, getBrandingOverrideCss } from '@/server/branding';
+import { BrandingSync } from '@/components/BrandingSync';
+
+export const dynamic = 'force-dynamic';
 
 export default async function RootLayout({children}:{children:React.ReactNode}){
   const overrideCss = await getBrandingOverrideCss();
@@ -14,7 +17,10 @@ export default async function RootLayout({children}:{children:React.ReactNode}){
         <link href={GOOGLE_FONTS_URL} rel="stylesheet" />
         <style dangerouslySetInnerHTML={{ __html: overrideCss }} />
       </head>
-      <body>{children}</body>
+      <body>
+        <BrandingSync />
+        {children}
+      </body>
     </html>
   );
 }

@@ -18,6 +18,8 @@ const publicAuthRoutes = new Set([
   'applications/track/route.ts',
   // Public brand logo, rendered in every page header; the handler only serves keys under branding/logo/.
   'admin/branding/logo/[...key]/route.ts',
+  // Public, read-only font/logo sync consumed by every open tab; no sensitive data.
+  'branding/route.ts',
 ]);
 const selfServiceRoutes = new Set([
   'auth/me/route.ts',
