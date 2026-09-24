@@ -4,6 +4,7 @@ import type { CSSProperties } from "react";
 
 import { pool } from "@/db";
 import { requireUser } from "@/server/context";
+import { Badge, Button, PageHeader, Textarea } from "@/components/ui";
 
 type AnswerRow = {
   evaluation_id: string;
@@ -171,12 +172,12 @@ async function loadEvaluations(employeeId: string) {
 function ScorePills({ evaluation }: { evaluation: EvaluationRow }) {
   return (
     <div style={styles.pills}>
-      <span style={styles.statusPill}>{statusLabel(evaluation.status)}</span>
-      <span style={styles.scorePill}>
+      <Badge>{statusLabel(evaluation.status)}</Badge>
+      <Badge variant="success">
         الدرجة: {evaluation.final_score || evaluation.weighted_score || "—"}
-      </span>
+      </Badge>
       {evaluation.result_label && (
-        <span style={styles.resultPill}>{evaluation.result_label}</span>
+        <Badge variant="warning">{evaluation.result_label}</Badge>
       )}
     </div>
   );
@@ -207,16 +208,16 @@ function ReviewForm({ evaluationId }: { evaluationId: string }) {
   return (
     <form action={requestReview} style={styles.reviewForm}>
       <input type="hidden" name="evaluation_id" value={evaluationId} />
-      <textarea
+      <Textarea
         name="review_note"
         required
         minLength={5}
         placeholder="اكتب ملاحظات طلب المراجعة..."
-        style={styles.textarea}
+        style={{ minHeight: 96, resize: "vertical" }}
       />
-      <button type="submit" style={styles.submitButton}>
+      <Button type="submit" style={{ width: "fit-content" }}>
         طلب مراجعة
-      </button>
+      </Button>
     </form>
   );
 }
@@ -229,15 +230,18 @@ export default async function MyEvaluationsPage() {
 
   return (
     <main dir="rtl" style={styles.page}>
-      <header style={styles.header}>
-        <div style={styles.brand}>
-          <span style={styles.brandIcon}>✓</span>
-          <span>تقييمي</span>
-        </div>
-        <a href="/" style={styles.homeLink}>
-          الأنظمة
-        </a>
-      </header>
+      <PageHeader
+        title="تقييمي"
+        brandMark={<span style={styles.brandIcon}>✓</span>}
+        nav={
+          <a
+            href="/"
+            style={{ color: "#fff", border: "1px solid rgba(255,255,255,.28)", borderRadius: 10, padding: "9px 13px", fontSize: 12 }}
+          >
+            الأنظمة
+          </a>
+        }
+      />
 
       <section style={styles.shell}>
         <div style={styles.hero}>
@@ -248,13 +252,13 @@ export default async function MyEvaluationsPage() {
         </div>
 
         {!evaluations.length ? (
-          <div style={styles.emptyState}>
+          <div className="dst-empty">
             لا توجد تقييمات منشورة أو معتمدة لحسابك حاليًا.
           </div>
         ) : (
           <div style={styles.grid}>
             {evaluations.map((evaluation) => (
-              <article key={evaluation.id} style={styles.card}>
+              <article key={evaluation.id} className="dst-card" style={styles.card}>
                 <div style={styles.cardHeader}>
                   <div>
                     <h2 style={styles.cardTitle}>{evaluation.cycle_name}</h2>
@@ -294,25 +298,9 @@ export default async function MyEvaluationsPage() {
 const styles = {
   page: {
     minHeight: "100vh",
-    background: "#f7f9fd",
-    color: "#111827",
+    background: "var(--dst-color-bg-page)",
+    color: "var(--dst-color-text)",
     fontFamily: "var(--app-font)",
-  },
-  header: {
-    minHeight: 64,
-    background: "#173bd1",
-    color: "#fff",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 14,
-    padding: "10px 26px",
-  },
-  brand: {
-    display: "flex",
-    alignItems: "center",
-    gap: 12,
-    fontWeight: 300,
   },
   brandIcon: {
     width: 38,
@@ -321,14 +309,6 @@ const styles = {
     borderRadius: 12,
     display: "grid",
     placeItems: "center",
-  },
-  homeLink: {
-    color: "#fff",
-    textDecoration: "none",
-    border: "1px solid rgba(255,255,255,.28)",
-    borderRadius: 10,
-    padding: "9px 13px",
-    fontSize: 12,
   },
   shell: {
     width: "min(1050px, 100%)",
@@ -342,31 +322,20 @@ const styles = {
   title: {
     margin: "0 0 8px",
     fontSize: 26,
-    fontWeight: 300,
+    fontWeight: 500,
   },
   subtitle: {
     margin: 0,
-    color: "#7b8495",
+    color: "var(--dst-color-text-muted)",
     fontSize: 13,
-  },
-  emptyState: {
-    background: "#fff",
-    border: "1px dashed #d9deea",
-    borderRadius: 16,
-    padding: 34,
-    textAlign: "center",
-    color: "#7b8495",
   },
   grid: {
     display: "grid",
     gap: 16,
   },
   card: {
-    background: "#fff",
-    border: "1px solid #e3e7ef",
-    borderRadius: 18,
+    padding: 0,
     overflow: "hidden",
-    boxShadow: "0 3px 12px rgba(19,33,75,.04)",
   },
   cardHeader: {
     display: "flex",
@@ -374,15 +343,16 @@ const styles = {
     gap: 14,
     flexWrap: "wrap",
     padding: 18,
-    borderBottom: "1px solid #edf0f5",
+    borderBottom: "1px solid var(--dst-color-border)",
   },
   cardTitle: {
     margin: "0 0 6px",
     fontSize: 18,
+    fontWeight: 500,
   },
   cardMeta: {
     margin: 0,
-    color: "#7b8495",
+    color: "var(--dst-color-text-muted)",
     fontSize: 12,
   },
   pills: {
@@ -391,34 +361,13 @@ const styles = {
     gap: 8,
     flexWrap: "wrap",
   },
-  statusPill: {
-    borderRadius: 999,
-    background: "#eef2ff",
-    color: "#173bd1",
-    padding: "6px 12px",
-    fontSize: 12,
-  },
-  scorePill: {
-    borderRadius: 999,
-    background: "#ecfdf5",
-    color: "#15803d",
-    padding: "6px 12px",
-    fontSize: 12,
-  },
-  resultPill: {
-    borderRadius: 999,
-    background: "#fff7ed",
-    color: "#c2410c",
-    padding: "6px 12px",
-    fontSize: 12,
-  },
   cardBody: {
     padding: 18,
     display: "grid",
     gap: 12,
   },
   answerCard: {
-    border: "1px solid #edf0f5",
+    border: "1px solid var(--dst-color-border)",
     borderRadius: 14,
     padding: 14,
   },
@@ -430,14 +379,15 @@ const styles = {
   },
   answerTitle: {
     fontSize: 14,
+    fontWeight: 500,
   },
   answerScore: {
-    color: "#173bd1",
+    color: "var(--dst-color-primary)",
     fontSize: 13,
   },
   mutedText: {
     margin: "8px 0 0",
-    color: "#7b8495",
+    color: "var(--dst-color-text-muted)",
     fontSize: 12,
     lineHeight: 1.8,
   },
@@ -457,24 +407,5 @@ const styles = {
     display: "grid",
     gap: 10,
     marginTop: 4,
-  },
-  textarea: {
-    minHeight: 96,
-    resize: "vertical",
-    border: "1px solid #d9deea",
-    borderRadius: 12,
-    padding: 12,
-    font: "inherit",
-    outline: "none",
-  },
-  submitButton: {
-    width: "fit-content",
-    border: 0,
-    borderRadius: 12,
-    background: "#173bd1",
-    color: "#fff",
-    padding: "11px 18px",
-    font: "inherit",
-    cursor: "pointer",
   },
 } satisfies Record<string, CSSProperties>;
