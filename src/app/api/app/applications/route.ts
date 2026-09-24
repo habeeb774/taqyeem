@@ -1,10 +1,15 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { jsonFail, jsonOk } from '@/server/api';
 import { requireUser } from '@/server/context';
+import { corsHeaders } from '@/server/cors';
 import { createApplication, listApplicationsForAdmin } from '@/server/recruitment/applications';
 
 export const dynamic = 'force-dynamic';
+
+export async function OPTIONS(request: NextRequest) {
+  return new NextResponse(null, { status: 204, headers: corsHeaders(request) });
+}
 
 const applicationSchema = z.object({
   job_id: z.string().uuid().nullable().optional(),
@@ -36,6 +41,7 @@ function clientIp(req: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const headers = corsHeaders(request);
   try {
     if (checkLimit(`application-submit:${clientIp(request)}`, 8)) {
       throw Object.assign(new Error('RATE_LIMITED'), { status: 429 });
@@ -74,9 +80,11 @@ export async function POST(request: NextRequest) {
       cvFile,
     );
 
-    return jsonOk({ reference_number: application.reference_number, id: application.id });
+    return jsonOk({ reference_number: application.reference_number, id: application.id }, { headers });
   } catch (error) {
-    return jsonFail(error);
+    const response = jsonFail(error);
+    Object.entries(headers).forEach(([key, value]) => response.headers.set(key, value));
+    return response;
   }
 }
 

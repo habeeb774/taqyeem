@@ -1,10 +1,16 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { jsonFail, jsonOk } from '@/server/api';
+import { corsHeaders } from '@/server/cors';
 import { listPublishedJobs } from '@/server/recruitment/jobs';
 
 export const dynamic = 'force-dynamic';
 
+export async function OPTIONS(request: NextRequest) {
+  return new NextResponse(null, { status: 204, headers: corsHeaders(request) });
+}
+
 export async function GET(request: NextRequest) {
+  const headers = corsHeaders(request);
   try {
     const query = request.nextUrl.searchParams;
     const result = await listPublishedJobs({
@@ -18,8 +24,10 @@ export async function GET(request: NextRequest) {
       limit: Number(query.get('limit') || 12),
       offset: Number(query.get('offset') || 0),
     });
-    return jsonOk(result);
+    return jsonOk(result, { headers });
   } catch (error) {
-    return jsonFail(error);
+    const response = jsonFail(error);
+    Object.entries(headers).forEach(([key, value]) => response.headers.set(key, value));
+    return response;
   }
 }
