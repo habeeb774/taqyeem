@@ -69,7 +69,9 @@ export default async function JobDetailPage({ params }: { params: Promise<{ slug
         </p>
 
         <a
-          href={`/jobs/${job.slug}/apply`}
+          href={job.external_apply_url || `/jobs/${job.slug}/apply`}
+          target={job.external_apply_url ? '_blank' : undefined}
+          rel={job.external_apply_url ? 'noopener noreferrer' : undefined}
           style={{
             display: 'block',
             textAlign: 'center',
@@ -84,7 +86,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ slug
             textDecoration: 'none',
           }}
         >
-          التقديم على الوظيفة
+          {job.external_apply_url ? 'الاطلاع على الشاغر' : 'التقديم على الوظيفة'}
         </a>
       </section>
     </main>

@@ -11,6 +11,7 @@ export const jobs = pgTable('jobs', {
   description: text('description'), responsibilities: text('responsibilities'), requirements: text('requirements'), benefits: text('benefits'),
   salaryMin: numeric('salary_min',{precision:12,scale:2}), salaryMax: numeric('salary_max',{precision:12,scale:2}), salaryVisible: boolean('salary_visible').notNull().default(false),
   vacanciesCount: integer('vacancies_count').notNull().default(1), status: text('status').notNull().default('draft'),
+  externalApplyUrl: text('external_apply_url'),
   publishAt: timestamp('publish_at',{withTimezone:true}), expiresAt: timestamp('expires_at',{withTimezone:true}),
   createdBy: uuid('created_by').references(()=>users.id),
   createdAt: timestamp('created_at',{withTimezone:true}).notNull().defaultNow(), updatedAt: timestamp('updated_at',{withTimezone:true}).notNull().defaultNow(),

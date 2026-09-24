@@ -30,6 +30,7 @@ const emptyForm = {
   employment_type: 'full_time', workplace_type: 'onsite', experience_min: '', experience_max: '',
   description: '', responsibilities: '', requirements: '', benefits: '',
   salary_min: '', salary_max: '', salary_visible: false, vacancies_count: '1',
+  external_apply_url: '',
 };
 
 export default function JobsClient() {
@@ -93,6 +94,7 @@ export default function JobsClient() {
       requirements: j.requirements || '', benefits: j.benefits || '',
       salary_min: j.salary_min ?? '', salary_max: j.salary_max ?? '',
       salary_visible: !!j.salary_visible, vacancies_count: String(j.vacancies_count ?? 1),
+      external_apply_url: j.external_apply_url || '',
     });
     setEditing(id);
     setShowForm(true);
@@ -113,6 +115,7 @@ export default function JobsClient() {
         salary_min: form.salary_min === '' ? null : Number(form.salary_min),
         salary_max: form.salary_max === '' ? null : Number(form.salary_max),
         salary_visible: form.salary_visible, vacancies_count: Number(form.vacancies_count || 1),
+        external_apply_url: form.external_apply_url.trim() || null,
       };
       const res = await fetch(editing ? `/api/app/recruitment/jobs/${editing}` : '/api/app/recruitment/jobs', {
         method: editing ? 'PATCH' : 'POST',
@@ -289,6 +292,17 @@ export default function JobsClient() {
                   <input type="checkbox" checked={form.salary_visible} onChange={(e) => setForm({ ...form, salary_visible: e.target.checked })} />
                   إظهار الراتب للمتقدمين
                 </label>
+              </Field>
+              <Field label="رابط تقديم خارجي (اختياري — مثل تمهير)" full>
+                <input
+                  placeholder="https://..."
+                  value={form.external_apply_url}
+                  onChange={(e) => setForm({ ...form, external_apply_url: e.target.value })}
+                  style={inputStyle}
+                />
+                <p style={{ margin: '4px 0 0', fontSize: 11, color: '#888', fontWeight: 400 }}>
+                  إذا تم تعبئته، سيتم توجيه المتقدمين لهذا الرابط بدل نموذج التقديم الداخلي.
+                </p>
               </Field>
               <Field label="الوصف" full>
                 <textarea rows={3} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} style={inputStyle} />

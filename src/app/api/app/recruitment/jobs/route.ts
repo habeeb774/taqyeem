@@ -25,6 +25,7 @@ const jobSchema = z.object({
   salary_visible: z.coerce.boolean().optional(),
   vacancies_count: z.coerce.number().int().min(1).max(500).optional(),
   expires_at: z.string().nullable().optional(),
+  external_apply_url: z.string().trim().url().max(500).nullable().optional().or(z.literal('')),
 });
 
 export async function GET(request: NextRequest) {
@@ -66,6 +67,7 @@ export async function POST(request: NextRequest) {
       salaryVisible: value.salary_visible,
       vacanciesCount: value.vacancies_count,
       expiresAt: value.expires_at,
+      externalApplyUrl: value.external_apply_url || null,
     });
     return jsonOk({ job });
   } catch (error) {

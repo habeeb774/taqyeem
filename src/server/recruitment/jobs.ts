@@ -35,6 +35,7 @@ export type JobInput = {
   salaryVisible?: boolean;
   vacanciesCount?: number;
   expiresAt?: string | null;
+  externalApplyUrl?: string | null;
 };
 
 function slugify(value: string) {
@@ -176,9 +177,9 @@ export async function createJob(context: SecurityContext, input: JobInput) {
         insert into public.jobs(
           organization_id,title_ar,title_en,slug,department_id,branch_id,employment_type,workplace_type,
           experience_min,experience_max,description,responsibilities,requirements,benefits,
-          salary_min,salary_max,salary_visible,vacancies_count,expires_at,created_by
+          salary_min,salary_max,salary_visible,vacancies_count,expires_at,external_apply_url,created_by
         ) values(
-          $1::uuid,$2,$3,$4,$5::uuid,$6::uuid,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19::timestamptz,$20::uuid
+          $1::uuid,$2,$3,$4,$5::uuid,$6::uuid,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19::timestamptz,$20,$21::uuid
         ) returning *
       `,
       [
@@ -187,7 +188,7 @@ export async function createJob(context: SecurityContext, input: JobInput) {
         input.experienceMin ?? null, input.experienceMax ?? null, input.description || null,
         input.responsibilities || null, input.requirements || null, input.benefits || null,
         input.salaryMin ?? null, input.salaryMax ?? null, input.salaryVisible ?? false,
-        input.vacanciesCount || 1, input.expiresAt || null, context.user.id,
+        input.vacanciesCount || 1, input.expiresAt || null, input.externalApplyUrl || null, context.user.id,
       ],
     );
     await client.query(
@@ -217,7 +218,7 @@ export async function updateJob(context: SecurityContext, id: string, input: Par
           employment_type = $8, workplace_type = $9, experience_min = $10, experience_max = $11,
           description = $12, responsibilities = $13, requirements = $14, benefits = $15,
           salary_min = $16, salary_max = $17, salary_visible = $18, vacancies_count = $19,
-          expires_at = $20::timestamptz, updated_at = now()
+          expires_at = $20::timestamptz, external_apply_url = $21, updated_at = now()
         where id = $1::uuid and organization_id = $2::uuid
         returning *
       `,
@@ -231,7 +232,7 @@ export async function updateJob(context: SecurityContext, id: string, input: Par
         input.requirements ?? existing.requirements, input.benefits ?? existing.benefits,
         input.salaryMin ?? existing.salary_min, input.salaryMax ?? existing.salary_max,
         input.salaryVisible ?? existing.salary_visible, input.vacanciesCount ?? existing.vacancies_count,
-        input.expiresAt ?? existing.expires_at,
+        input.expiresAt ?? existing.expires_at, input.externalApplyUrl ?? existing.external_apply_url,
       ],
     );
     await client.query(
@@ -287,6 +288,7 @@ export async function duplicateJob(context: SecurityContext, id: string) {
     salaryMax: existing.salary_max,
     salaryVisible: existing.salary_visible,
     vacanciesCount: existing.vacancies_count,
+    externalApplyUrl: existing.external_apply_url,
   });
 }
 

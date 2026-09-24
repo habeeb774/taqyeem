@@ -19,6 +19,7 @@ create table if not exists public.jobs (
   salary_visible boolean not null default false,
   vacancies_count integer not null default 1,
   status text not null default 'draft' check (status in ('draft','scheduled','published','paused','closed','archived')),
+  external_apply_url text,
   publish_at timestamptz,
   expires_at timestamptz,
   created_by uuid references public.users(id),
