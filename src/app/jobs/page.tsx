@@ -59,11 +59,31 @@ export default function JobsPage() {
 
   return (
     <main dir="rtl" style={{ minHeight: '100vh', background: '#fbfcfe', color: '#0d0d0d', fontFamily: 'var(--app-font)' }}>
-      <header style={{ background: '#173BD1', color: '#fff', padding: '28px 24px' }}>
-        <div style={{ maxWidth: 960, margin: '0 auto' }}>
-          <p style={{ margin: '0 0 6px', fontSize: 13, opacity: 0.8 }}>شركة السويد التجارية</p>
-          <h1 style={{ margin: 0, fontSize: 26, fontWeight: 500 }}>الوظائف الشاغرة</h1>
-          <p style={{ margin: '10px 0 0', fontSize: 14, opacity: 0.9 }}>
+      <header style={{ background: '#173BD1', color: '#fff' }}>
+        <div style={{ maxWidth: 960, margin: '0 auto', padding: '20px 24px', display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 12,
+              border: '1px solid rgba(255,255,255,.38)',
+              background: "rgba(255,255,255,.13) url('/brand-logo.png') center/25px 32px no-repeat",
+              filter: 'brightness(0) invert(1)',
+              flexShrink: 0,
+            }}
+            aria-label="شعار السويد"
+          />
+          <div>
+            <p style={{ margin: 0, fontSize: 15, fontWeight: 600 }}>شركة السويد التجارية</p>
+            <p style={{ margin: 0, color: 'rgba(255,255,255,.7)', fontSize: 11 }}>التوظيف والفرص الوظيفية</p>
+          </div>
+        </div>
+        <div style={{ maxWidth: 960, margin: '0 auto', padding: '10px 24px 36px' }}>
+          <h1 style={{ margin: 0, fontSize: 28, fontWeight: 500 }}>انضم إلى فريقنا</h1>
+          <p style={{ margin: '12px 0 0', fontSize: 14, opacity: 0.9, lineHeight: 1.9, maxWidth: 560 }}>
+            نبحث دائمًا عن مواهب تشاركنا الطموح. تصفح الوظائف الشاغرة أدناه وقدّم طلبك مباشرة.
+          </p>
+          <p style={{ margin: '14px 0 0', fontSize: 13, opacity: 0.85 }}>
             {jobs ? `${total} وظيفة متاحة حاليًا` : 'جاري تحميل الوظائف...'}
           </p>
         </div>
