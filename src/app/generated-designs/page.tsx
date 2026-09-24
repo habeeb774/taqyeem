@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { DesignShell, designApi } from "@/components/design-shell";
+import { EmptyState } from "@/components/ui";
 export default function GeneratedPage() {
   const [items, setItems] = useState<any[]>([]),
     [loading, setLoading] = useState(true),
@@ -30,11 +31,11 @@ export default function GeneratedPage() {
         {loading ? (
           <div className="ds-loading">جارٍ التحميل...</div>
         ) : error ? (
-          <div className="ds-empty">{error}</div>
+          <EmptyState>{error}</EmptyState>
         ) : items.length ? (
           <div className="ds-history-grid">
             {items.map((x) => (
-              <article className="ds-card" key={x.id}>
+              <article className="dst-card" key={x.id} style={{ padding: 0, overflow: 'hidden' }}>
                 <div className="ds-history-img">
                   {x.image_url ? (
                     <img src={x.image_url} alt="" />
@@ -67,7 +68,7 @@ export default function GeneratedPage() {
             ))}
           </div>
         ) : (
-          <div className="ds-empty">لا توجد تصاميم محفوظة بعد.</div>
+          <EmptyState>لا توجد تصاميم محفوظة بعد.</EmptyState>
         )}
         <div className="ds-pages">
           {Array.from({ length: pages }, (_, i) => i + 1).map((p) => (

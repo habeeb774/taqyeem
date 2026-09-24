@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { FormEvent, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { DesignShell, designApi } from '@/components/design-shell';
+import { Badge, Button, EmptyState, Field, Input, Modal, Select, Textarea } from '@/components/ui';
 
 type Template = {
   id: string;
@@ -30,6 +31,12 @@ function statusLabel(status: string) {
   if (status === 'published') return 'منشور';
   if (status === 'archived') return 'مؤرشف';
   return 'مسودة';
+}
+
+function statusVariant(status: string): 'default' | 'success' | 'warning' {
+  if (status === 'published') return 'success';
+  if (status === 'archived') return 'warning';
+  return 'default';
 }
 
 export default function DesignsPage() {
@@ -204,43 +211,43 @@ export default function DesignsPage() {
 
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             {can('design_templates.manage_categories') && (
-              <button className="ds-btn ghost" onClick={addCategory}>
+              <Button variant="ghost" size="sm" onClick={addCategory}>
                 إضافة تصنيف
-              </button>
+              </Button>
             )}
 
             {can('design_templates.manage_fonts') && (
-              <button className="ds-btn ghost" onClick={addFont}>
+              <Button variant="ghost" size="sm" onClick={addFont}>
                 إضافة خط
-              </button>
+              </Button>
             )}
 
             {can('design_templates.create') && (
-              <button className="ds-btn" onClick={() => setModal(true)}>
+              <Button size="sm" onClick={() => setModal(true)}>
                 + إضافة قالب تصميم
-              </button>
+              </Button>
             )}
           </div>
         </div>
 
         <section className="ds-filters">
-          <input
-            className="ds-input"
+          <Input
             placeholder="ابحث باسم القالب..."
             value={q}
             onChange={(event) => {
               setQ(event.target.value);
               setPage(1);
             }}
+            aria-label="بحث باسم القالب"
           />
 
-          <select
-            className="ds-select"
+          <Select
             value={category}
             onChange={(event) => {
               setCategory(event.target.value);
               setPage(1);
             }}
+            aria-label="فلترة بالتصنيف"
           >
             <option value="">كل التصنيفات</option>
             {categories.map((item) => (
@@ -248,41 +255,41 @@ export default function DesignsPage() {
                 {item.name}
               </option>
             ))}
-          </select>
+          </Select>
 
-          <select
-            className="ds-select"
+          <Select
             value={status}
             onChange={(event) => {
               setStatus(event.target.value);
               setPage(1);
             }}
+            aria-label="فلترة بالحالة"
           >
             <option value="">كل الحالات</option>
             <option value="draft">مسودة</option>
             <option value="published">منشور</option>
             <option value="archived">مؤرشف</option>
-          </select>
+          </Select>
 
-          <select className="ds-select" value={createdBy} onChange={(event) => setCreatedBy(event.target.value)}>
+          <Select value={createdBy} onChange={(event) => setCreatedBy(event.target.value)} aria-label="فلترة بالمنشئ">
             <option value="">كل المنشئين</option>
             {creators.map((item) => (
               <option key={item.id} value={item.id}>
                 {item.name}
               </option>
             ))}
-          </select>
+          </Select>
 
-          <select className="ds-select" value={sort} onChange={(event) => setSort(event.target.value)}>
+          <Select value={sort} onChange={(event) => setSort(event.target.value)} aria-label="ترتيب النتائج">
             <option value="newest">الأحدث</option>
             <option value="oldest">الأقدم</option>
             <option value="name">الاسم</option>
             <option value="usage">الأكثر استخدامًا</option>
-          </select>
+          </Select>
 
-          <button className="ds-btn ghost" onClick={() => setView(view === 'grid' ? 'list' : 'grid')}>
+          <Button variant="ghost" size="sm" onClick={() => setView(view === 'grid' ? 'list' : 'grid')}>
             {view === 'grid' ? 'عرض قائمة' : 'عرض بطاقات'}
-          </button>
+          </Button>
         </section>
 
         {loading ? (
@@ -290,7 +297,7 @@ export default function DesignsPage() {
         ) : items.length ? (
           <div className={`ds-grid ${view}`}>
             {items.map((template) => (
-              <article className="ds-card" key={template.id}>
+              <article className="dst-card" key={template.id} style={{ padding: 0, overflow: 'hidden' }}>
                 <div className="ds-thumb">
                   {template.thumbnail_url || template.background_image_url ? (
                     <img src={template.thumbnail_url || template.background_image_url} alt="" />
@@ -302,7 +309,7 @@ export default function DesignsPage() {
                 <div className="ds-card-body">
                   <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
                     <h3>{template.name}</h3>
-                    <span className={`ds-chip ${template.status}`}>{statusLabel(template.status)}</span>
+                    <Badge variant={statusVariant(template.status)}>{statusLabel(template.status)}</Badge>
                   </div>
 
                   <div className="ds-meta">
@@ -345,7 +352,7 @@ export default function DesignsPage() {
             ))}
           </div>
         ) : (
-          <div className="ds-empty">لا توجد قوالب مطابقة. ابدأ بإضافة قالب تصميم جديد.</div>
+          <EmptyState>لا توجد قوالب مطابقة. ابدأ بإضافة قالب تصميم جديد.</EmptyState>
         )}
 
         <div className="ds-pages">
@@ -363,81 +370,52 @@ export default function DesignsPage() {
         </div>
       </main>
 
-      {modal && (
-        <div
-          className="ds-modal"
-          onMouseDown={(event) => {
-            if (event.target === event.currentTarget) setModal(false);
-          }}
-        >
-          <form className="ds-dialog" onSubmit={create}>
-            <h2>إضافة قالب تصميم</h2>
-            <div className="ds-form">
-              <label className="ds-field full">
-                اسم القالب
-                <input className="ds-input" name="name" required maxLength={160} />
-              </label>
+      <Modal
+        open={modal}
+        onClose={() => setModal(false)}
+        titleId="new-template-title"
+        title="إضافة قالب تصميم"
+      >
+        <form id="create-template-form" onSubmit={create}>
+          <div className="ds-form">
+            <Field id="template-name" label="اسم القالب" full>
+              <Input id="template-name" name="name" required maxLength={160} />
+            </Field>
 
-              <label className="ds-field full">
-                الوصف
-                <textarea className="ds-textarea" name="description" rows={3} />
-              </label>
+            <Field id="template-description" label="الوصف" full>
+              <Textarea id="template-description" name="description" rows={3} />
+            </Field>
 
-              <label className="ds-field">
-                التصنيف
-                <select className="ds-select" name="category_id">
-                  <option value="">بدون تصنيف</option>
-                  {categories.map((item) => (
-                    <option key={item.id} value={item.id}>
-                      {item.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
+            <Field id="template-category" label="التصنيف">
+              <Select id="template-category" name="category_id">
+                <option value="">بدون تصنيف</option>
+                {categories.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.name}
+                  </option>
+                ))}
+              </Select>
+            </Field>
 
-              <label className="ds-field">
-                العرض
-                <input
-                  className="ds-input"
-                  name="width"
-                  type="number"
-                  min="100"
-                  max="12000"
-                  defaultValue="1080"
-                  required
-                />
-              </label>
+            <Field id="template-width" label="العرض">
+              <Input id="template-width" name="width" type="number" min="100" max="12000" defaultValue="1080" required />
+            </Field>
 
-              <label className="ds-field">
-                الارتفاع
-                <input
-                  className="ds-input"
-                  name="height"
-                  type="number"
-                  min="100"
-                  max="12000"
-                  defaultValue="1080"
-                  required
-                />
-              </label>
+            <Field id="template-height" label="الارتفاع">
+              <Input id="template-height" name="height" type="number" min="100" max="12000" defaultValue="1080" required />
+            </Field>
 
-              <label className="ds-field full">
-                ملاحظات
-                <textarea className="ds-textarea" name="notes" rows={2} />
-              </label>
-            </div>
+            <Field id="template-notes" label="ملاحظات" full>
+              <Textarea id="template-notes" name="notes" rows={2} />
+            </Field>
+          </div>
 
-            <div className="ds-dialog-actions">
-              <button className="ds-btn" type="submit">
-                إنشاء وفتح المحرر
-              </button>
-              <button className="ds-btn ghost" type="button" onClick={() => setModal(false)}>
-                إلغاء
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
+          <div className="dst-modal__actions">
+            <Button type="submit">إنشاء وفتح المحرر</Button>
+            <Button variant="ghost" type="button" onClick={() => setModal(false)}>إلغاء</Button>
+          </div>
+        </form>
+      </Modal>
 
       {toast && <div className="ds-toast">{toast}</div>}
     </DesignShell>

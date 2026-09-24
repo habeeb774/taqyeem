@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { ReactNode, useEffect, useState } from 'react';
 import '@/app/design.css';
 import '@/app/design-font.css';
+import { PageHeader } from '@/components/ui';
 
 export function DesignShell({ children }: { children: ReactNode }) {
   const path = usePathname();
@@ -26,61 +27,63 @@ export function DesignShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="ds-shell">
-      <header className="unified-topbar">
-        <div className="unified-topbar__brand">
-          <span className="unified-topbar__mark" aria-label="شعار السويد" />
-          <span>منصة الأنظمة الإدارية</span>
-        </div>
-
-        <nav className="unified-topbar__nav" aria-label="التنقل بين الأنظمة">
-          <Link className={path === '/' ? 'is-active' : ''} href="/">
-            الرئيسية
-          </Link>
-
-          {can('evaluations.view', 'evaluations.create', 'evaluations.edit') && (
-            <Link className={path.startsWith('/assessment') ? 'is-active' : ''} href="/assessment">
-              التقييم
+      <PageHeader
+        title="منصة الأنظمة الإدارية"
+        brandMark={
+          <div
+            style={{
+              width: 36, height: 36, borderRadius: 12, border: '1px solid rgba(255,255,255,.38)',
+              background: "rgba(255,255,255,.13) url('/brand-logo.png') center/23px 29px no-repeat",
+              filter: 'brightness(0) invert(1)',
+            }}
+            aria-label="شعار السويد"
+          />
+        }
+        nav={
+          <>
+            <Link href="/" aria-current={path === '/' ? 'page' : undefined}>
+              الرئيسية
             </Link>
-          )}
 
-          {can('forms.view', 'forms.use_templates', 'forms.manage_templates') && (
-            <Link className={path.startsWith('/forms') ? 'is-active' : ''} href="/forms">
-              النماذج
-            </Link>
-          )}
+            {can('evaluations.view', 'evaluations.create', 'evaluations.edit') && (
+              <Link href="/assessment" aria-current={path.startsWith('/assessment') ? 'page' : undefined}>
+                التقييم
+              </Link>
+            )}
 
-          {can('design_templates.view') && (
-            <Link
-              className={path.startsWith('/design-templates') ? 'is-active' : ''}
-              href="/design-templates"
+            {can('forms.view', 'forms.use_templates', 'forms.manage_templates') && (
+              <Link href="/forms" aria-current={path.startsWith('/forms') ? 'page' : undefined}>
+                النماذج
+              </Link>
+            )}
+
+            {can('design_templates.view') && (
+              <Link href="/design-templates" aria-current={path.startsWith('/design-templates') ? 'page' : undefined}>
+                قوالب التصاميم
+              </Link>
+            )}
+
+            {can('generated_designs.view') && (
+              <Link href="/generated-designs" aria-current={path.startsWith('/generated-designs') ? 'page' : undefined}>
+                سجل التصاميم
+              </Link>
+            )}
+
+            {can('recruitment.jobs.view') && (
+              <Link href="/admin/recruitment" aria-current={path.startsWith('/admin/recruitment') ? 'page' : undefined}>
+                التوظيف
+              </Link>
+            )}
+
+            <button
+              onClick={logout}
+              style={{ color: '#fff', border: '1px solid rgba(255,255,255,.28)', borderRadius: 10, padding: '9px 13px', fontSize: 12, background: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
             >
-              قوالب التصاميم
-            </Link>
-          )}
-
-          {can('generated_designs.view') && (
-            <Link
-              className={path.startsWith('/generated-designs') ? 'is-active' : ''}
-              href="/generated-designs"
-            >
-              سجل التصاميم
-            </Link>
-          )}
-
-          {can('recruitment.jobs.view') && (
-            <Link
-              className={path.startsWith('/admin/recruitment') ? 'is-active' : ''}
-              href="/admin/recruitment"
-            >
-              التوظيف
-            </Link>
-          )}
-
-          <button className="unified-topbar__logout" onClick={logout}>
-            خروج
-          </button>
-        </nav>
-      </header>
+              خروج
+            </button>
+          </>
+        }
+      />
 
       {children}
     </div>
