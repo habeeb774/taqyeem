@@ -82,7 +82,9 @@ export async function POST(request: NextRequest) {
 
     return jsonOk({ reference_number: application.reference_number, id: application.id }, { headers });
   } catch (error) {
+    console.error('APPLICATIONS_POST_DEBUG', error);
     const response = jsonFail(error);
+    response.headers.set('X-Debug-Error', String((error as Error)?.message || error).slice(0, 200));
     Object.entries(headers).forEach(([key, value]) => response.headers.set(key, value));
     return response;
   }
