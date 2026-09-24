@@ -26,7 +26,7 @@ const styles = `
     box-shadow: 0 20px 45px #10259b55;
     text-align: right;
   }
-  .title { font-weight: 600; font-size: 18px; margin-bottom: 20px; }
+  .title { font-weight: 700; font-size: 18px; margin-bottom: 20px; }
   .field { display: block; color: #77829a; font-size: 13px; margin: 15px 0 7px; }
   .input {
     width: 100%;
@@ -66,7 +66,7 @@ const styles = `
     background: #2445d9;
     color: #fff;
     font-size: 16px;
-    font-weight: 600;
+    font-weight: 700;
     cursor: pointer;
   }
   .btn:disabled { opacity: .65; cursor: wait; }
@@ -124,7 +124,7 @@ const html = `<!doctype html>
   <title>تقييم أداء الموظفين</title>
   <link rel="icon" href="/favicon.png?v=20260924" type="image/png" sizes="192x192">
   <link rel="apple-touch-icon" href="/apple-icon.png?v=20260924">
-  <link rel="stylesheet" href="/unified-font.css?v=20260924-light">
+  <link rel="stylesheet" href="/unified-font.css?v=20260924-original">
   <style>${styles}</style>
 </head>
 <body>

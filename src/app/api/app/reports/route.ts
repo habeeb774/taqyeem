@@ -39,6 +39,28 @@ type AttendanceReportRow = ReportRow & {
   status: string;
 };
 
+type BranchSummaryRow = {
+  branch_id: string | null;
+  branch_name: string | null;
+  employee_count: number;
+  avg_final_score: number | null;
+  submitted_count: number;
+  published_count: number;
+  completion_rate: number;
+  avg_achievement_percentage: number | null;
+};
+
+type DepartmentSummaryRow = {
+  department_id: string | null;
+  department_name: string | null;
+  employee_count: number;
+  avg_final_score: number | null;
+  submitted_count: number;
+  published_count: number;
+  completion_rate: number;
+  avg_achievement_percentage: number | null;
+};
+
 const performanceColumns = [
   'employee_id',
   'employee_number',
@@ -174,6 +196,102 @@ function queryAttendance(
   );
 }
 
+function queryBranchSummary(
+  employeeIds: string[],
+  year: number | null,
+  month: number | null,
+) {
+  return pool.query<BranchSummaryRow>(
+    `
+      select
+        br.id branch_id,
+        br.name branch_name,
+        count(distinct emp.id)::int employee_count,
+        round(avg(e.final_score), 2) avg_final_score,
+        count(distinct e.id) filter (where e.status in ('submitted','reviewed','approved','published','locked'))::int submitted_count,
+        count(distinct e.id) filter (where e.status in ('published','locked'))::int published_count,
+        case
+          when count(distinct e.id) > 0
+          then round(
+            count(distinct e.id) filter (where e.status in ('published','locked'))::numeric
+            / count(distinct e.id) * 100,
+            2
+          )
+          else 0
+        end completion_rate,
+        round(avg(
+          case when t.target_amount > 0 then t.achieved_amount / t.target_amount * 100 end
+        ), 2) avg_achievement_percentage
+      from public.employees emp
+      left join public.branches br on br.id = emp.branch_id
+      left join public.evaluations e
+        on e.employee_id = emp.id
+        and exists (
+          select 1 from public.evaluation_cycles c
+          where c.id = e.cycle_id and ($2::int is null or c.year = $2) and ($3::int is null or c.month = $3)
+        )
+      left join public.sales_targets t
+        on t.employee_id = emp.id
+        and exists (
+          select 1 from public.evaluation_cycles c
+          where c.id = t.cycle_id and ($2::int is null or c.year = $2) and ($3::int is null or c.month = $3)
+        )
+      where emp.id = any($1::uuid[])
+      group by br.id, br.name
+      order by br.name nulls last
+    `,
+    [employeeIds, year, month],
+  );
+}
+
+function queryDepartmentSummary(
+  employeeIds: string[],
+  year: number | null,
+  month: number | null,
+) {
+  return pool.query<DepartmentSummaryRow>(
+    `
+      select
+        d.id department_id,
+        d.name department_name,
+        count(distinct emp.id)::int employee_count,
+        round(avg(e.final_score), 2) avg_final_score,
+        count(distinct e.id) filter (where e.status in ('submitted','reviewed','approved','published','locked'))::int submitted_count,
+        count(distinct e.id) filter (where e.status in ('published','locked'))::int published_count,
+        case
+          when count(distinct e.id) > 0
+          then round(
+            count(distinct e.id) filter (where e.status in ('published','locked'))::numeric
+            / count(distinct e.id) * 100,
+            2
+          )
+          else 0
+        end completion_rate,
+        round(avg(
+          case when t.target_amount > 0 then t.achieved_amount / t.target_amount * 100 end
+        ), 2) avg_achievement_percentage
+      from public.employees emp
+      left join public.departments d on d.id = emp.department_id
+      left join public.evaluations e
+        on e.employee_id = emp.id
+        and exists (
+          select 1 from public.evaluation_cycles c
+          where c.id = e.cycle_id and ($2::int is null or c.year = $2) and ($3::int is null or c.month = $3)
+        )
+      left join public.sales_targets t
+        on t.employee_id = emp.id
+        and exists (
+          select 1 from public.evaluation_cycles c
+          where c.id = t.cycle_id and ($2::int is null or c.year = $2) and ($3::int is null or c.month = $3)
+        )
+      where emp.id = any($1::uuid[])
+      group by d.id, d.name
+      order by d.name nulls last
+    `,
+    [employeeIds, year, month],
+  );
+}
+
 function xmlEscape(value: unknown) {
   return String(value ?? '')
     .replace(/&/g, '&amp;')
@@ -239,13 +357,16 @@ export async function GET(req: NextRequest) {
         performance: [],
         targets: [],
         attendance: [],
+        summary: { byBranch: [], byDepartment: [] },
       });
     }
 
-    const [performance, targets, attendance] = await Promise.all([
+    const [performance, targets, attendance, byBranch, byDepartment] = await Promise.all([
       queryPerformance(employeeIds, filters.yearValue, filters.monthValue),
       queryTargets(employeeIds, filters.yearValue, filters.monthValue),
       queryAttendance(employeeIds, filters.yearValue, filters.monthValue),
+      queryBranchSummary(employeeIds, filters.yearValue, filters.monthValue),
+      queryDepartmentSummary(employeeIds, filters.yearValue, filters.monthValue),
     ]);
 
     if (filters.format === 'xlsx') {
@@ -264,6 +385,10 @@ export async function GET(req: NextRequest) {
       performance: performance.rows,
       targets: targets.rows,
       attendance: attendance.rows,
+      summary: {
+        byBranch: byBranch.rows,
+        byDepartment: byDepartment.rows,
+      },
     });
   } catch (error) {
     const response = jsonError(error);
