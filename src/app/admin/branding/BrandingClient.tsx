@@ -1,11 +1,25 @@
 "use client";
 import { useEffect, useState } from 'react';
-import { Button, Card, Field, Input, PageHeader } from '@/components/ui';
+import { Button, Card, Field, Input, PageHeader, Select } from '@/components/ui';
+
+const FONT_OPTIONS: { value: 'sans' | 'alexandria' | 'cairo' | 'tajawal'; label: string }[] = [
+  { value: 'sans', label: 'سانس (الخط الافتراضي)' },
+  { value: 'alexandria', label: 'الإسكندرية (Alexandria)' },
+  { value: 'cairo', label: 'القاهرة (Cairo)' },
+  { value: 'tajawal', label: 'تجوال (Tajawal)' },
+];
+
+const PREVIEW_FONT_FAMILY: Record<Branding['fontChoice'], string> = {
+  sans: 'var(--app-font)',
+  alexandria: "'Alexandria', var(--app-font)",
+  cairo: "'Cairo', var(--app-font)",
+  tajawal: "'Tajawal', var(--app-font)",
+};
 
 type Branding = {
   companyName: string;
   logoUrl: string | null;
-  useSystemFont: boolean;
+  fontChoice: 'sans' | 'alexandria' | 'cairo' | 'tajawal';
 };
 
 export default function BrandingClient() {
@@ -133,14 +147,20 @@ export default function BrandingClient() {
 
             <Card style={{ marginBottom: 16 }}>
               <h2 style={{ margin: '0 0 14px', fontSize: 15, fontWeight: 500 }}>خط الأنظمة</h2>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
-                <input
-                  type="checkbox"
-                  checked={branding.useSystemFont}
-                  onChange={(e) => setBranding({ ...branding, useSystemFont: e.target.checked })}
-                />
-                استخدام خط النظام الافتراضي (Tahoma) بدل الخط المخصص لجميع الأنظمة
-              </label>
+              <Field id="font-choice" label="يُطبَّق على جميع الأنظمة فورًا بعد الحفظ">
+                <Select
+                  id="font-choice"
+                  value={branding.fontChoice}
+                  onChange={(e) => setBranding({ ...branding, fontChoice: e.target.value as Branding['fontChoice'] })}
+                >
+                  {FONT_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>{option.label}</option>
+                  ))}
+                </Select>
+              </Field>
+              <p style={{ margin: '10px 0 0', fontSize: 20, fontFamily: PREVIEW_FONT_FAMILY[branding.fontChoice] }}>
+                معاينة: نظام إدارة الموارد البشرية
+              </p>
             </Card>
 
             <Button onClick={save} disabled={saving}>

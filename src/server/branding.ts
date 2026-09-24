@@ -4,25 +4,46 @@ import { resolveDefaultOrganizationId } from '@/server/recruitment/org';
 
 const SETTINGS_KEY = 'app.branding';
 
+export const FONT_CHOICES = ['sans', 'alexandria', 'cairo', 'tajawal'] as const;
+export type FontChoice = (typeof FONT_CHOICES)[number];
+
+const BASE_FALLBACK = '"TaqyeemSans","ThSans","ThmanyahSans",Tahoma,Arial,system-ui,sans-serif';
+
+export const FONT_STACKS: Record<FontChoice, string> = {
+  sans: BASE_FALLBACK,
+  alexandria: `"Alexandria", ${BASE_FALLBACK}`,
+  cairo: `"Cairo", ${BASE_FALLBACK}`,
+  tajawal: `"Tajawal", ${BASE_FALLBACK}`,
+};
+
+export const FONT_LABELS: Record<FontChoice, string> = {
+  sans: 'سانس (الخط الافتراضي)',
+  alexandria: 'الإسكندرية (Alexandria)',
+  cairo: 'القاهرة (Cairo)',
+  tajawal: 'تجوال (Tajawal)',
+};
+
 export type BrandingSettings = {
   companyName: string;
   logoUrl: string | null;
-  useSystemFont: boolean;
+  fontChoice: FontChoice;
 };
 
 const DEFAULT_BRANDING: BrandingSettings = {
   companyName: 'شركة السويد التجارية',
   logoUrl: null,
-  useSystemFont: false,
+  fontChoice: 'sans',
 };
 
 function normalize(value: unknown): BrandingSettings {
   if (!value || typeof value !== 'object') return DEFAULT_BRANDING;
-  const v = value as Partial<BrandingSettings>;
+  const v = value as Partial<BrandingSettings> & { useSystemFont?: boolean };
   return {
     companyName: typeof v.companyName === 'string' && v.companyName.trim() ? v.companyName : DEFAULT_BRANDING.companyName,
     logoUrl: typeof v.logoUrl === 'string' && v.logoUrl.trim() ? v.logoUrl.replace(/['"()]/g, '') : null,
-    useSystemFont: v.useSystemFont === true,
+    fontChoice: typeof v.fontChoice === 'string' && (FONT_CHOICES as readonly string[]).includes(v.fontChoice)
+      ? (v.fontChoice as FontChoice)
+      : DEFAULT_BRANDING.fontChoice,
   };
 }
 

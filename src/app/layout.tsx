@@ -1,10 +1,10 @@
 import './design-system.css';
-import { getPublicBranding } from '@/server/branding';
+import { FONT_STACKS, getPublicBranding } from '@/server/branding';
 
 export default async function RootLayout({children}:{children:React.ReactNode}){
   const branding = await getPublicBranding();
   const overrides = [
-    branding.useSystemFont ? '--app-font: Tahoma, Arial, system-ui, sans-serif;' : '',
+    `--app-font: ${FONT_STACKS[branding.fontChoice]};`,
     branding.logoUrl ? `--brand-logo-url: url('${branding.logoUrl}');` : '',
   ].filter(Boolean).join(' ');
 
@@ -13,7 +13,13 @@ export default async function RootLayout({children}:{children:React.ReactNode}){
       <head>
         <link href="/unified-font.css?v=20260924-original" rel="stylesheet" />
         <link href="/system-topbar.css" rel="stylesheet" />
-        {overrides && <style dangerouslySetInnerHTML={{ __html: `:root{${overrides}}` }} />}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Alexandria:wght@300;400;500;600;700&family=Cairo:wght@300;400;500;600;700&family=Tajawal:wght@300;400;500;700&display=swap"
+          rel="stylesheet"
+        />
+        <style dangerouslySetInnerHTML={{ __html: `:root{${overrides}}` }} />
       </head>
       <body>{children}</body>
     </html>
