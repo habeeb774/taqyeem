@@ -1,3 +1,5 @@
+import './design-system.css';
+
 export default function RootLayout({children}:{children:React.ReactNode}){
   return (
     <html lang="ar" dir="rtl">
