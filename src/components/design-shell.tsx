@@ -67,6 +67,15 @@ export function DesignShell({ children }: { children: ReactNode }) {
             </Link>
           )}
 
+          {can('recruitment.jobs.view') && (
+            <Link
+              className={path.startsWith('/admin/recruitment') ? 'is-active' : ''}
+              href="/admin/recruitment"
+            >
+              التوظيف
+            </Link>
+          )}
+
           <button className="unified-topbar__logout" onClick={logout}>
             خروج
           </button>
