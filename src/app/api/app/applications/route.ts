@@ -4,6 +4,7 @@ import { jsonFail, jsonOk } from '@/server/api';
 import { requireUser } from '@/server/context';
 import { corsHeaders } from '@/server/cors';
 import { createApplication, listApplicationsForAdmin } from '@/server/recruitment/applications';
+import { checkRateLimit, clientIp } from '@/server/rate-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,27 +24,10 @@ const applicationSchema = z.object({
   consent: z.coerce.boolean(),
 });
 
-const attempts = new Map<string, { count: number; resetAt: number }>();
-
-function checkLimit(key: string, limit = 5, windowMs = 15 * 60 * 1000) {
-  const now = Date.now();
-  const current = attempts.get(key);
-  if (!current || current.resetAt <= now) {
-    attempts.set(key, { count: 1, resetAt: now + windowMs });
-    return false;
-  }
-  current.count += 1;
-  return current.count > limit;
-}
-
-function clientIp(req: NextRequest) {
-  return (req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || '').split(',')[0].trim() || 'unknown';
-}
-
 export async function POST(request: NextRequest) {
   const headers = corsHeaders(request);
   try {
-    if (checkLimit(`application-submit:${clientIp(request)}`, 8)) {
+    if (checkRateLimit(`application-submit:${clientIp(request)}`, 8, 15 * 60 * 1000)) {
       throw Object.assign(new Error('RATE_LIMITED'), { status: 429 });
     }
 
