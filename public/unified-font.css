@@ -35,3 +35,16 @@ select,
 textarea {
   font-family: var(--app-font) !important;
 }
+
+/* Keep typography consistently light across the modern pages and legacy shells. */
+html,
+body,
+body * {
+  font-synthesis: none;
+  font-weight: 400 !important;
+}
+
+body :where(h1, h2, h3, h4, h5, h6, b, strong, th, button),
+.unified-topbar__brand {
+  font-weight: 500 !important;
+}
