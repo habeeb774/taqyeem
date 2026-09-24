@@ -23,7 +23,7 @@
 }
 
 :root {
-  --app-font: "TaqyeemSans", "ThSans", "ThmanyahSans", Tahoma, Arial, system-ui, sans-serif;
+  --app-font: Tahoma, Arial, system-ui, sans-serif;
   --ff: var(--app-font);
 }
 
