@@ -312,7 +312,7 @@ const styles = {
     display: "flex",
     alignItems: "center",
     gap: 12,
-    fontWeight: 500,
+    fontWeight: 400,
   },
   brandIcon: {
     width: 38,
@@ -342,7 +342,7 @@ const styles = {
   title: {
     margin: "0 0 8px",
     fontSize: 26,
-    fontWeight: 500,
+    fontWeight: 400,
   },
   subtitle: {
     margin: 0,

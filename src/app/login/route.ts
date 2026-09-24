@@ -26,7 +26,7 @@ const styles = `
     box-shadow: 0 20px 45px #10259b55;
     text-align: right;
   }
-  .title { font-weight: 500; font-size: 18px; margin-bottom: 20px; }
+  .title { font-weight: 400; font-size: 18px; margin-bottom: 20px; }
   .field { display: block; color: #77829a; font-size: 13px; margin: 15px 0 7px; }
   .input {
     width: 100%;
@@ -66,7 +66,7 @@ const styles = `
     background: #2445d9;
     color: #fff;
     font-size: 16px;
-    font-weight: 500;
+    font-weight: 400;
     cursor: pointer;
   }
   .btn:disabled { opacity: .65; cursor: wait; }
