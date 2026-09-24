@@ -31,8 +31,22 @@ export function ApplicationForm({ jobId, jobTitle }: { jobId: string | null; job
       if (jobId) formData.set('job_id', jobId);
       formData.set('consent', formData.get('consent') ? 'true' : 'false');
 
+      const cvFile = formData.get('cv');
+      if (cvFile instanceof File && cvFile.size > 5 * 1024 * 1024) {
+        throw new Error('حجم الملف يتجاوز 5 ميجابايت.');
+      }
+
       const response = await fetch('/api/app/applications', { method: 'POST', body: formData });
-      const data = await response.json();
+      let data: any;
+      try {
+        data = await response.json();
+      } catch {
+        throw new Error(
+          response.status === 413
+            ? 'حجم الملف كبير جدًا على الخادم. يرجى إرفاق سيرة ذاتية أصغر من 5 ميجابايت.'
+            : 'تعذر إرسال الطلب، يرجى المحاولة مرة أخرى.',
+        );
+      }
 
       if (!data.ok) {
         const messages: Record<string, string> = {
