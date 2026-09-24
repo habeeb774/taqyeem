@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
+import { RecruitmentTopbar } from '@/components/recruitment/RecruitmentTopbar';
 
 type Settings = {
   heroTitle: string;
@@ -156,18 +156,7 @@ export default function SettingsClient() {
 
   return (
     <main dir="rtl" style={{ minHeight: '100vh', background: '#fbfcfe', color: '#0d0d0d', fontFamily: 'var(--app-font)' }}>
-      <header style={{ background: '#173BD1', color: '#fff', padding: '24px 34px' }}>
-        <div style={{ maxWidth: 900, margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <p style={{ margin: '0 0 4px', fontSize: 13, opacity: 0.8 }}>لوحة التوظيف</p>
-            <h1 style={{ margin: 0, fontSize: 22, fontWeight: 500 }}>إعدادات صفحة الوظائف العامة</h1>
-          </div>
-          <nav style={{ display: 'flex', gap: 10 }}>
-            <Link href="/admin/recruitment" style={{ color: 'rgba(255,255,255,.75)', fontSize: 13, textDecoration: 'none' }}>نظرة عامة</Link>
-            <Link href="/admin/recruitment/jobs" style={{ color: 'rgba(255,255,255,.75)', fontSize: 13, textDecoration: 'none' }}>الوظائف</Link>
-          </nav>
-        </div>
-      </header>
+      <RecruitmentTopbar pageTitle="إعدادات صفحة الوظائف العامة" active="settings" />
 
       <section style={{ maxWidth: 900, margin: '0 auto', padding: '28px 34px 60px' }}>
         {loading ? (

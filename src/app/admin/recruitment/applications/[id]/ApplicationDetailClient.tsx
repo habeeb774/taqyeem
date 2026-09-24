@@ -1,7 +1,7 @@
 "use client";
 import { useCallback, useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
-import Link from 'next/link';
+import { RecruitmentTopbar } from '@/components/recruitment/RecruitmentTopbar';
 
 const STATUSES: Record<string, string> = {
   new: 'جديد', reviewing: 'قيد المراجعة', shortlisted: 'قائمة مختصرة', interview: 'مقابلة',
@@ -80,15 +80,7 @@ export default function ApplicationDetailClient() {
 
   return (
     <main dir="rtl" style={{ minHeight: '100vh', background: '#fbfcfe', color: '#0d0d0d', fontFamily: 'var(--app-font)' }}>
-      <header style={{ background: '#173BD1', color: '#fff', padding: '24px 34px' }}>
-        <div style={{ maxWidth: 900, margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <p style={{ margin: '0 0 4px', fontSize: 13, opacity: 0.8 }}>لوحة التوظيف</p>
-            <h1 style={{ margin: 0, fontSize: 22, fontWeight: 500 }}>تفاصيل الطلب</h1>
-          </div>
-          <Link href="/admin/recruitment/applications" style={{ color: 'rgba(255,255,255,.75)', fontSize: 13, textDecoration: 'none' }}>رجوع للمتقدمين</Link>
-        </div>
-      </header>
+      <RecruitmentTopbar pageTitle="تفاصيل الطلب" active="applications" maxWidth={900} />
 
       <section style={{ maxWidth: 900, margin: '0 auto', padding: '28px 34px 60px' }}>
         {loading ? (
