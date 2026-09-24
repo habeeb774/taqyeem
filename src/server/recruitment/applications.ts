@@ -1,7 +1,7 @@
 import { pool } from '@/db';
 import { must, type SecurityContext } from '@/db/queries/security';
 import { withNeonTransaction } from '@/lib/neon/admin';
-import { sendApplicationReceivedEmail } from '@/server/recruitment-email';
+import { sendApplicationReceivedEmail, sendNewApplicationHrNotification } from '@/server/recruitment-email';
 import { uploadCv } from '@/server/recruitment-storage';
 import { resolveDefaultOrganizationId } from './org';
 
@@ -88,7 +88,15 @@ export async function createApplication(input: ApplicationInput, cvFile: File) {
 
     return updated.rows[0];
   }).then(async (application) => {
-    await sendApplicationReceivedEmail(application.email, application.full_name, application.reference_number);
+    let jobTitle: string | null = null;
+    if (application.job_id) {
+      const job = await pool.query(`select title_ar from public.jobs where id=$1::uuid limit 1`, [application.job_id]);
+      jobTitle = job.rows[0]?.title_ar || null;
+    }
+    await Promise.all([
+      sendApplicationReceivedEmail(application.email, application.full_name, application.reference_number),
+      sendNewApplicationHrNotification(application.full_name, application.reference_number, jobTitle, application.id),
+    ]);
     return application;
   });
 }

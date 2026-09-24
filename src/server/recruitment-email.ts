@@ -23,3 +23,25 @@ export async function sendApplicationReceivedEmail(to: string, fullName: string,
     `,
   );
 }
+
+export async function sendNewApplicationHrNotification(
+  applicantName: string,
+  referenceNumber: string,
+  jobTitle: string | null,
+  applicationId: string,
+) {
+  const hrEmail = process.env.HR_NOTIFICATION_EMAIL;
+  if (!hrEmail) return;
+
+  await sendMail(
+    hrEmail,
+    'متقدم جديد على وظيفة',
+    `
+      <p>تم استلام طلب توظيف جديد.</p>
+      <p>المتقدم: <strong>${applicantName}</strong></p>
+      <p>الوظيفة: <strong>${jobTitle || 'تقديم عام (بدون وظيفة محددة)'}</strong></p>
+      <p>رقم الطلب: <strong>${referenceNumber}</strong></p>
+      <p><a href="https://taqyeem.alsweed.sa/admin/recruitment/applications/${applicationId}">عرض الطلب في لوحة التوظيف</a></p>
+    `,
+  );
+}
