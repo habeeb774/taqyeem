@@ -2,11 +2,12 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { NextResponse } from "next/server";
 import { jsonError, requireUser } from "@/server/context";
+import { getBrandingOverrideStyleTag } from "@/server/branding";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const injectedHeadAssets = [
+const baseHeadAssets = [
   '<link rel="icon" href="/favicon.png?v=20260924" type="image/png" sizes="192x192">',
   '<link rel="apple-touch-icon" href="/apple-icon.png?v=20260924">',
   '<link rel="stylesheet" href="/unified-font.css?v=20260924-original">',
@@ -24,7 +25,7 @@ export async function GET() {
         join(process.cwd(), "src", "templates", "assessment.html"),
         "utf8",
       )
-    ).replace("</head>", `${injectedHeadAssets}</head>`);
+    ).replace("</head>", `${baseHeadAssets}${await getBrandingOverrideStyleTag()}</head>`);
     return new NextResponse(html, {
       headers: {
         "Content-Type": "text/html; charset=utf-8",

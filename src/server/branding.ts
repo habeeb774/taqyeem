@@ -60,6 +60,19 @@ export async function getPublicBranding(): Promise<BrandingSettings> {
   }
 }
 
+export async function getBrandingOverrideCss(): Promise<string> {
+  const branding = await getPublicBranding();
+  const overrides = [
+    `--app-font: ${FONT_STACKS[branding.fontChoice]} !important;`,
+    branding.logoUrl ? `--brand-logo-url: url('${branding.logoUrl}') !important;` : '',
+  ].filter(Boolean).join(' ');
+  return `:root{${overrides}}`;
+}
+
+export async function getBrandingOverrideStyleTag(): Promise<string> {
+  return `<style>${await getBrandingOverrideCss()}</style>`;
+}
+
 export async function getBrandingForAdmin(context: SecurityContext): Promise<BrandingSettings> {
   must(context, 'settings.manage');
   const result = await pool.query(

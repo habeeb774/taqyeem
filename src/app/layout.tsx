@@ -1,12 +1,8 @@
 import './design-system.css';
-import { FONT_STACKS, getPublicBranding } from '@/server/branding';
+import { getBrandingOverrideCss } from '@/server/branding';
 
 export default async function RootLayout({children}:{children:React.ReactNode}){
-  const branding = await getPublicBranding();
-  const overrides = [
-    `--app-font: ${FONT_STACKS[branding.fontChoice]} !important;`,
-    branding.logoUrl ? `--brand-logo-url: url('${branding.logoUrl}') !important;` : '',
-  ].filter(Boolean).join(' ');
+  const overrideCss = await getBrandingOverrideCss();
 
   return (
     <html lang="ar" dir="rtl">
@@ -19,7 +15,7 @@ export default async function RootLayout({children}:{children:React.ReactNode}){
           href="https://fonts.googleapis.com/css2?family=Alexandria:wght@300;400;500;600;700&family=Cairo:wght@300;400;500;600;700&family=Tajawal:wght@300;400;500;700&display=swap"
           rel="stylesheet"
         />
-        <style dangerouslySetInnerHTML={{ __html: `:root{${overrides}}` }} />
+        <style dangerouslySetInnerHTML={{ __html: overrideCss }} />
       </head>
       <body>{children}</body>
     </html>
