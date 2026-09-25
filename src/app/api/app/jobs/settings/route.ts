@@ -10,7 +10,8 @@ export async function OPTIONS(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
-  const headers = corsHeaders(request);
+  // Company copy/benefits/hero title change only when an admin edits them.
+  const headers = { ...corsHeaders(request), 'Cache-Control': 'public, max-age=60, stale-while-revalidate=600' };
   try {
     const settings = await getPublicRecruitmentSettings();
     return jsonOk({ settings }, { headers });

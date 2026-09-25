@@ -10,7 +10,10 @@ export async function OPTIONS(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
-  const headers = corsHeaders(request);
+  // Public, non-personalized listing consumed by anonymous visitors on the
+  // careers site; short-lived shared cache cuts DB load without staling an
+  // admin's just-published job for more than half a minute.
+  const headers = { ...corsHeaders(request), 'Cache-Control': 'public, max-age=30, stale-while-revalidate=120' };
   try {
     const query = request.nextUrl.searchParams;
     const result = await listPublishedJobs({

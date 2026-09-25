@@ -1,6 +1,7 @@
 import {
   boolean,
   date,
+  index,
   integer,
   jsonb,
   numeric,
@@ -60,22 +61,37 @@ export const rolePermissions = pgTable(
   (table) => [primaryKey({ columns: [table.roleId, table.permissionId] })],
 );
 
-export const userRoles = pgTable('user_roles', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  userId: uuid('user_id').notNull(),
-  roleId: uuid('role_id').notNull(),
-  organizationId: uuid('organization_id').notNull(),
-  createdBy: uuid('created_by'),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-});
+export const userRoles = pgTable(
+  'user_roles',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    userId: uuid('user_id').notNull(),
+    roleId: uuid('role_id').notNull(),
+    organizationId: uuid('organization_id').notNull(),
+    createdBy: uuid('created_by'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    // Looked up on every authenticated request (loadSecurityContext); was an
+    // unindexed foreign key, forcing a full table scan each time.
+    index('user_roles_user_org_idx').on(table.userId, table.organizationId),
+  ],
+);
 
-export const roleScopes = pgTable('role_scopes', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  userRoleId: uuid('user_role_id').notNull(),
-  scopeType: text('scope_type').notNull(),
-  scopeId: uuid('scope_id'),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-});
+export const roleScopes = pgTable(
+  'role_scopes',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    userRoleId: uuid('user_role_id').notNull(),
+    scopeType: text('scope_type').notNull(),
+    scopeId: uuid('scope_id'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    // Joined against user_roles on every authenticated request.
+    index('role_scopes_user_role_idx').on(table.userRoleId),
+  ],
+);
 
 export const userScopes = pgTable(
   'user_scopes',

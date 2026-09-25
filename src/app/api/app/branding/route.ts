@@ -10,10 +10,13 @@ export const dynamic = 'force-dynamic';
 export async function GET() {
   try {
     const branding = await getPublicBranding();
-    return jsonOk({
-      fontStack: FONT_STACKS[branding.fontChoice],
-      logoUrl: branding.logoUrl,
-    });
+    // BrandingSync calls this on every client-side route change (potentially
+    // many times per session); a short shared-cache window avoids a DB hit
+    // per navigation while still reflecting an admin's change within ~10s.
+    return jsonOk(
+      { fontStack: FONT_STACKS[branding.fontChoice], logoUrl: branding.logoUrl },
+      { headers: { 'Cache-Control': 'public, max-age=10, stale-while-revalidate=60' } },
+    );
   } catch (error) {
     return jsonFail(error);
   }

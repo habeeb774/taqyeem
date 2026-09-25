@@ -10,7 +10,7 @@ export async function OPTIONS(request: Request) {
 }
 
 export async function GET(request: Request, { params }: { params: Promise<{ slug: string }> }) {
-  const headers = corsHeaders(request);
+  const headers = { ...corsHeaders(request), 'Cache-Control': 'public, max-age=30, stale-while-revalidate=120' };
   try {
     const { slug } = await params;
     const job = await getPublishedJobBySlug(slug);

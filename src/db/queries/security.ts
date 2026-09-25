@@ -47,25 +47,46 @@ export async function loadSecurityContext(userId: string): Promise<SecurityConte
     throw Object.assign(new Error('PROFILE_NOT_READY'), { status: 403 });
   }
 
-  const roleResult = await pool.query(
-    `select
-       ur.id user_role_id,
-       r.id role_id,
-       r.code,
-       r.name_ar,
-       coalesce(
-         json_agg(json_build_object('type', rs.scope_type, 'id', rs.scope_id))
-           filter(where rs.id is not null),
-         '[]'
-       ) scopes
-     from public.user_roles ur
-     join public.roles r on r.id = ur.role_id and r.active = true
-     left join public.role_scopes rs on rs.user_role_id = ur.id
-     where ur.user_id = $1::uuid
-       and ur.organization_id = $2::uuid
-     group by ur.id, r.id, r.code, r.name_ar`,
-    [userId, user.organization_id],
-  );
+  // roleResult, overrides, and directScopes each depend only on
+  // userId/organizationId (already known from userResult above), not on each
+  // other — running them in parallel collapses 3 sequential round-trips into
+  // 1 on the hot path that every authenticated request goes through.
+  const [roleResult, overrides, directScopes] = await Promise.all([
+    pool.query(
+      `select
+         ur.id user_role_id,
+         r.id role_id,
+         r.code,
+         r.name_ar,
+         coalesce(
+           json_agg(json_build_object('type', rs.scope_type, 'id', rs.scope_id))
+             filter(where rs.id is not null),
+           '[]'
+         ) scopes
+       from public.user_roles ur
+       join public.roles r on r.id = ur.role_id and r.active = true
+       left join public.role_scopes rs on rs.user_role_id = ur.id
+       where ur.user_id = $1::uuid
+         and ur.organization_id = $2::uuid
+       group by ur.id, r.id, r.code, r.name_ar`,
+      [userId, user.organization_id],
+    ),
+    pool.query(
+      `select p.code, o.effect
+       from public.user_permission_overrides o
+       join public.permissions p on p.id = o.permission_id
+       where o.user_id = $1::uuid
+         and (o.organization_id = $2::uuid or o.organization_id is null)`,
+      [userId, user.organization_id],
+    ),
+    pool.query(
+      `select scope_type, scope_id
+       from public.user_scopes
+       where user_id = $1::uuid
+         and organization_id = $2::uuid`,
+      [userId, user.organization_id],
+    ),
+  ]);
 
   const roles = roleResult.rows.map((role: any) => ({
     user_role_id: String(role.user_role_id),
@@ -89,28 +110,11 @@ export async function loadSecurityContext(userId: string): Promise<SecurityConte
       )
     : ({ rows: [] } as any);
 
-  const overrides = await pool.query(
-    `select p.code, o.effect
-     from public.user_permission_overrides o
-     join public.permissions p on p.id = o.permission_id
-     where o.user_id = $1::uuid
-       and (o.organization_id = $2::uuid or o.organization_id is null)`,
-    [userId, user.organization_id],
-  );
-
   const permissions = new Set<string>(basePermissions.rows.map((permission: any) => String(permission.code)));
   for (const override of overrides.rows as any[]) {
     if (override.effect === 'allow') permissions.add(String(override.code));
     else permissions.delete(String(override.code));
   }
-
-  const directScopes = await pool.query(
-    `select scope_type, scope_id
-     from public.user_scopes
-     where user_id = $1::uuid
-       and organization_id = $2::uuid`,
-    [userId, user.organization_id],
-  );
 
   const rawScopes = [
     ...roles.flatMap((role) => role.scopes),
