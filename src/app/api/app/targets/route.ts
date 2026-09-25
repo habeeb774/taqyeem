@@ -5,6 +5,7 @@ import { pool } from '@/db';
 import { withNeonTransaction } from '@/lib/neon/admin';
 import {
   assertEmployeeAccess,
+  filterAccessibleEmployeeIds,
   jsonError,
   must,
   requireUser,
@@ -66,15 +67,11 @@ export async function GET(request: NextRequest) {
       [context.organizationId, cycleId || null],
     );
 
-    const allowed: SalesTargetRow[] = [];
-    for (const target of result.rows) {
-      try {
-        await assertEmployeeAccess(context, String(target.employee_id));
-        allowed.push(target);
-      } catch {
-        // The target exists, but this user is not allowed to see its employee.
-      }
-    }
+    const accessibleEmployeeIds = await filterAccessibleEmployeeIds(
+      context,
+      result.rows.map((target) => String(target.employee_id)),
+    );
+    const allowed = result.rows.filter((target) => accessibleEmployeeIds.has(String(target.employee_id)));
 
     return NextResponse.json({ ok: true, targets: allowed });
   } catch (error) {

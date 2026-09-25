@@ -5,6 +5,7 @@ import {
   assertEmployeeAccess,
   can,
   canAccessEmployee,
+  filterAccessibleEmployeeIds,
   loadSecurityContext,
   must,
   type SecurityContext,
@@ -31,7 +32,7 @@ export async function requireUser(): Promise<SecurityContext> {
   return loadSecurityContext(String(id));
 }
 
-export { assertEmployeeAccess, can, canAccessEmployee, must };
+export { assertEmployeeAccess, can, canAccessEmployee, filterAccessibleEmployeeIds, must };
 
 export function jsonError(error: unknown) {
   const err = error as any;

@@ -282,6 +282,41 @@ export async function assertEmployeeAccess(context: SecurityContext, employeeId:
   }
 }
 
+// Same access rule as canAccessEmployee, applied to a whole list in one
+// query instead of one round-trip per row — for endpoints that fetch a list
+// of records and then need to keep only the ones whose employee the caller
+// may see.
+export async function filterAccessibleEmployeeIds(
+  context: SecurityContext,
+  employeeIds: string[],
+): Promise<Set<string>> {
+  const uniqueIds = [...new Set(employeeIds)];
+  if (!uniqueIds.length) return new Set();
+
+  const scope = scopeParts(context);
+  const result = await pool.query(
+    `${employeeScopeCte}
+     select e.id
+     from public.employees e
+     where e.id = any($1::uuid[])
+       and e.organization_id = $2::uuid
+       and e.deleted_at is null
+       and ${employeeScopeWhere}`,
+    [
+      uniqueIds,
+      context.organizationId,
+      scope.org,
+      scope.departments,
+      scope.branches,
+      scope.assigned,
+      context.user.employeeId,
+      context.user.id,
+    ],
+  );
+
+  return new Set(result.rows.map((row: any) => String(row.id)));
+}
+
 export async function visibleEmployees(
   context: SecurityContext,
   {

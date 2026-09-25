@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { jsonError, must, requireUser } from '@/server/context';
 import { pool } from '@/db';
 import { allVisibleEmployees } from '@/db/queries/security';
-import { resolveTemplate } from '@/db/queries/evaluations';
+import { resolveTemplatesBatch } from '@/db/queries/evaluations';
 import { withNeonTransaction } from '@/lib/neon/admin';
 
 type CycleRow = {
@@ -90,22 +90,37 @@ export async function POST(req: NextRequest) {
           [id, c.organizationId],
         );
 
-        for (const employee of em) {
-          const ex = await tx.query(
-            `select 1 from public.evaluation_exclusions where cycle_id=$1::uuid and employee_id=$2::uuid`,
-            [id, employee.id],
-          );
-          if (ex.rows[0]) continue;
-          const tid = await resolveTemplate(c.organizationId, String(employee.id));
-          if (!tid) continue;
-          const r = await tx.query(
+        // Batched instead of one exclusion-check + one template-resolve + one
+        // insert per employee: for an org with N employees this collapsed
+        // ~3N sequential round-trips into 3 total.
+        const employeeIds = em.map((employee) => String(employee.id));
+        const excludedResult = await tx.query(
+          `select employee_id from public.evaluation_exclusions where cycle_id=$1::uuid and employee_id = any($2::uuid[])`,
+          [id, employeeIds],
+        );
+        const excludedIds = new Set((excludedResult.rows as any[]).map((row) => String(row.employee_id)));
+
+        const candidateIds = employeeIds.filter((employeeId) => !excludedIds.has(employeeId));
+        const templateByEmployee = await resolveTemplatesBatch(tx, c.organizationId, candidateIds);
+        const toInsert = candidateIds
+          .map((employeeId) => ({ employeeId, templateId: templateByEmployee.get(employeeId) }))
+          .filter((row): row is { employeeId: string; templateId: string } => Boolean(row.templateId));
+
+        if (toInsert.length) {
+          const params: unknown[] = [id, c.user.id];
+          const valueRows = toInsert.map((row) => {
+            const beforeLength = params.length;
+            params.push(row.employeeId, row.templateId);
+            return `($1::uuid, $${beforeLength + 1}::uuid, $2::uuid, $${beforeLength + 2}::uuid, 'performance', $2::uuid)`;
+          });
+          const inserted = await tx.query(
             `insert into public.evaluation_assignments(cycle_id,employee_id,evaluator_user_id,template_id,evaluation_type,created_by)
-             values($1::uuid,$2::uuid,$3::uuid,$4::uuid,'performance',$3::uuid)
+             values ${valueRows.join(',')}
              on conflict(cycle_id,employee_id,evaluator_user_id,evaluation_type) do nothing
              returning id`,
-            [id, employee.id, c.user.id, tid],
+            params,
           );
-          made += r.rowCount || 0;
+          made += (inserted as any).rowCount ?? inserted.rows.length;
         }
 
         await tx.query(

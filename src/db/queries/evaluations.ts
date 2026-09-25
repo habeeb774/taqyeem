@@ -1,5 +1,56 @@
 import { pool } from '@/db';
 
+type Queryable = { query: (text: string, params?: unknown[]) => Promise<{ rows: any[] }> };
+
+// Same resolution rule as resolveTemplate, applied to a whole batch of
+// employees in one query instead of one round-trip per employee — used by
+// endpoints (like opening an evaluation cycle) that resolve a template for
+// every employee in the organization at once.
+export async function resolveTemplatesBatch(
+  client: Queryable,
+  organizationId: string,
+  employeeIds: string[],
+): Promise<Map<string, string | null>> {
+  const uniqueIds = [...new Set(employeeIds)];
+  const resolved = new Map<string, string | null>(uniqueIds.map((id) => [id, null]));
+  if (!uniqueIds.length) return resolved;
+
+  const result = await client.query(
+    `select e.id employee_id, t.id template_id
+     from public.employees e
+     join lateral (
+       select et.id
+       from public.evaluation_templates et
+       where et.organization_id = e.organization_id
+         and et.active = true
+         and (
+           (et.scope_type = 'employee' and et.scope_id = e.id)
+           or (et.scope_type = 'job_title' and et.scope_id = e.job_title_id)
+           or (et.scope_type = 'department' and et.scope_id = e.department_id)
+           or (et.scope_type = 'general' and et.scope_id is null)
+         )
+       order by
+         case et.scope_type
+           when 'employee' then 1
+           when 'job_title' then 2
+           when 'department' then 3
+           else 4
+         end,
+         et.version desc
+       limit 1
+     ) t on true
+     where e.id = any($1::uuid[])
+       and e.organization_id = $2::uuid
+       and e.deleted_at is null`,
+    [uniqueIds, organizationId],
+  );
+
+  for (const row of result.rows as any[]) {
+    resolved.set(String(row.employee_id), row.template_id ? String(row.template_id) : null);
+  }
+  return resolved;
+}
+
 export async function resolveTemplate(organizationId: string, employeeId: string) {
   const result = await pool.query(
     `select t.id

@@ -5,6 +5,7 @@ import { pool } from '@/db';
 import { withNeonTransaction } from '@/lib/neon/admin';
 import {
   assertEmployeeAccess,
+  filterAccessibleEmployeeIds,
   jsonError,
   must,
   requireUser,
@@ -72,15 +73,11 @@ export async function GET(req: NextRequest) {
       [context.organizationId, cycleId || null],
     );
 
-    const attendance: AttendanceEvaluationRow[] = [];
-    for (const row of result.rows) {
-      try {
-        await assertEmployeeAccess(context, String(row.employee_id));
-        attendance.push(row);
-      } catch {
-        // Keep scoped users from seeing attendance records outside their access.
-      }
-    }
+    const accessibleEmployeeIds = await filterAccessibleEmployeeIds(
+      context,
+      result.rows.map((row) => String(row.employee_id)),
+    );
+    const attendance = result.rows.filter((row) => accessibleEmployeeIds.has(String(row.employee_id)));
 
     const attendanceIds = attendance.map((row) => row.id);
     const entries = attendanceIds.length

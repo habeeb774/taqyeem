@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { pool } from '@/db';
 import {
   assertEmployeeAccess,
+  filterAccessibleEmployeeIds,
   jsonError,
   must,
   requireUser,
@@ -61,15 +62,11 @@ export async function GET(request: NextRequest) {
       [cycleId, context.organizationId],
     );
 
-    const exclusions: ExclusionRow[] = [];
-    for (const exclusion of result.rows) {
-      try {
-        await assertEmployeeAccess(context, String(exclusion.employee_id));
-        exclusions.push(exclusion);
-      } catch {
-        // Hidden because this user cannot access the excluded employee.
-      }
-    }
+    const accessibleEmployeeIds = await filterAccessibleEmployeeIds(
+      context,
+      result.rows.map((exclusion) => String(exclusion.employee_id)),
+    );
+    const exclusions = result.rows.filter((exclusion) => accessibleEmployeeIds.has(String(exclusion.employee_id)));
 
     return NextResponse.json({ ok: true, exclusions });
   } catch (error) {
