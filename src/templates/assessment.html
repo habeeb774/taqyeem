@@ -2,7 +2,6 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8"/>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no"/>
 <title>تقييم أداء الموظفين</title>
 <style>
@@ -912,6 +911,20 @@ img{max-width:100%;}
 <script>
 // Legacy UI-only cache. Production HR/evaluation data is persisted on Neon.
 const LEGACY_CACHE=(()=>{const m=new Map();return {getItem:k=>m.has(String(k))?m.get(String(k)):null,setItem:(k,v)=>{m.set(String(k),String(v));},removeItem:k=>m.delete(String(k)),clear:()=>m.clear()};})();
+/* XLSX (~350KB) is only needed for "تصدير Excel"; load it on first use instead of blocking every page load. */
+let XLSX_LOADING=null;
+function loadXLSX(){
+  if(typeof XLSX!=='undefined')return Promise.resolve();
+  if(XLSX_LOADING)return XLSX_LOADING;
+  XLSX_LOADING=new Promise((resolve,reject)=>{
+    const s=document.createElement('script');
+    s.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+    s.onload=resolve;
+    s.onerror=()=>{XLSX_LOADING=null;reject(new Error('XLSX_LOAD_FAILED'));};
+    document.head.appendChild(s);
+  });
+  return XLSX_LOADING;
+}
 const LOGO='/brand-logo.png';
 const USERS=[];
 const TITLES={};
@@ -1441,7 +1454,14 @@ function eAdd(){
 
 /* ── تصدير إكسل XLSX ── */
 function exportExcel(){
-  if(typeof XLSX==='undefined'){toast('جارٍ تحميل المكتبة، حاول مرة أخرى…');return;}
+  if(typeof XLSX==='undefined'){
+    toast('جارٍ تحميل المكتبة…');
+    loadXLSX().then(exportExcelImpl).catch(()=>toast('تعذر تحميل مكتبة التصدير، تحقق من الاتصال وحاول مرة أخرى.'));
+    return;
+  }
+  exportExcelImpl();
+}
+function exportExcelImpl(){
   var mo=ldMo(),moLbl=(mo&&mo.m&&mo.y)?MONTHS[parseInt(mo.m)-1]+' '+mo.y:'';
   var user=cu?cu.name:'—';
   var COLORS={'ممتاز':'1A7A3A','جيد جداً':'4CAF50','جيد':'2196F3','مقبول':'FF9800','ضعيف':'E53935',
