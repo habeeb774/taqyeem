@@ -232,7 +232,7 @@ function AddTemplateModal({
         </>
       }
     >
-      <div style={{ display: 'grid', gap: 12, minWidth: 'min(680px, 80vw)' }}>
+      <div style={{ display: 'grid', gap: 12, width: 'min(592px, calc(100vw - 80px))' }}>
         <Field id="nf-name" label="اسم النموذج">
           <Input id="nf-name" placeholder="مثال: نموذج تفويض صلاحيات" value={name} onChange={(event) => setName(event.target.value)} />
         </Field>
@@ -261,7 +261,7 @@ function AddTemplateModal({
         </div>
 
         {fields.map((field, index) => (
-          <div key={index} style={{ display: 'grid', gridTemplateColumns: '1.1fr 1fr 1fr auto', gap: 7, alignItems: 'center' }}>
+          <div key={index} className="forms-builder-row">
             <Input aria-label="اسم الحقل" placeholder="اسم الحقل" value={field.label} onChange={(event) => updateField(index, { label: event.target.value })} />
             <Input aria-label="مفتاح الحقل" placeholder="field_key" dir="ltr" value={field.id} onChange={(event) => updateField(index, { id: event.target.value })} />
             <Select aria-label="نوع الحقل" value={field.type} onChange={(event) => updateField(index, { type: event.target.value })}>
@@ -277,9 +277,9 @@ function AddTemplateModal({
             </span>
             <Select
               aria-label="الربط التلقائي"
+              className="forms-builder-row__binding"
               value={field.binding}
               onChange={(event) => updateField(index, { binding: event.target.value })}
-              style={{ gridColumn: '1/-1' }}
             >
               {BINDINGS.map(([value, label]) => (
                 <option key={value} value={value}>{label}</option>
