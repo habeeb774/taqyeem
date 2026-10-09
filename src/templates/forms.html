@@ -1545,8 +1545,19 @@ async function saveDraft(){
     return false;
   }
 }
-function clearDraft(id){ var drafts=lsGet(draftKey(),{}); if(drafts[id]){ delete drafts[id]; formMemory[draftKey()]=drafts; fetch('/api/app/forms?document_no='+encodeURIComponent(draftDocumentNo(id)),{method:'DELETE',credentials:'same-origin'}).catch(function(){}); } }
+async function clearDraft(id){
+  clearTimeout(_saveTimer);var key=draftKey(),number=draftDocumentNo(id),changeVersion=draftChangeVersion;
+  var request=draftSaveQueue.then(async function(){
+    var response=await fetch('/api/app/forms?document_no='+encodeURIComponent(number),{method:'DELETE',credentials:'same-origin'});
+    if(!response.ok&&response.status!==404)throw new Error('DRAFT_DELETE_FAILED');
+    var drafts=lsGet(key,{});delete drafts[id];formMemory[key]=drafts;
+    if(activeId===id&&changeVersion===draftChangeVersion){draftDirty=false;draftSaveVersion++;}
+  });
+  draftSaveQueue=request.catch(function(){});
+  try{await request;return true;}catch(e){return false;}
+}
 async function closeForm(){
+  if(documentActionBusy){toast('انتظر انتهاء إصدار المستند أو إرساله');return;}
   clearTimeout(_saveTimer);
   if(activeId&&draftDirty&&await saveDraft()===false)return;
   $('pgForm').style.display='none';$('app').style.display='flex';activeId=null;
@@ -2559,29 +2570,40 @@ function paginate(heights, pageH){
   return pages;
 }
 
+var documentActionBusy=false;
+function setDocumentActionBusy(busy){
+  documentActionBusy=busy;
+  ['exportPdfBtn','submitApprovalBtn'].forEach(function(id){var button=$(id);if(button)button.disabled=busy;});
+}
 async function exportPDF(){
+  if(documentActionBusy)return;
   if(!validate()) return;
+  setDocumentActionBusy(true);
   try{
     currentDocNo=await nextDocNoFromNeon();
     var v=vals();
     var document=await archiveDoc(currentDocNo,v,'issued');
     var audit=await fetch('/api/app/forms/print',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({document_id:document.id})});
     if(!audit.ok)throw new Error('PRINT_NOT_ALLOWED');
-    doPrint(docHtml()); pdfCount++; clearDraft(activeId);
-    toast('تم إصدار المستند رقم '+currentDocNo);
+    doPrint(docHtml()); pdfCount++;var cleared=await clearDraft(activeId);
+    toast('تم إصدار المستند رقم '+currentDocNo+(cleared?'':'، لكن تعذر إزالة المسودة القديمة'));
   }catch(e){toast('تعذر حفظ المستند قبل الطباعة: '+(e.message||''));}
+  finally{setDocumentActionBusy(false);}
 }
 async function submitForApproval(){
+  if(documentActionBusy)return;
   if(currentPermissions.indexOf('forms.submit')<0){toast('ليست لديك صلاحية إرسال النموذج');return;}
   if(!validate())return;
+  setDocumentActionBusy(true);
   try{
     currentDocNo=currentDocNo||await nextDocNoFromNeon();
     var saved=await archiveDoc(currentDocNo,vals(),'draft');
     var r=await fetch('/api/app/forms',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({action:'submit',document_id:saved.id})}),j=await r.json();
     if(!r.ok||!j.ok)throw new Error(j.error||'SUBMIT_FAILED');
-    clearDraft(activeId); await loadRemoteArchive();
-    toast(j.status==='pending_approval'?'تم إرسال النموذج للموافقات':'تم إرسال النموذج');
+    var cleared=await clearDraft(activeId);await loadRemoteArchive();
+    toast((j.status==='pending_approval'?'تم إرسال النموذج للموافقات':'تم إرسال النموذج')+(cleared?'':'، لكن تعذر إزالة المسودة القديمة'));
   }catch(e){toast('تعذر إرسال النموذج: '+(e.message||''));}
+  finally{setDocumentActionBusy(false);}
 }
 function printBlank(){
   // print an empty copy of the form (no data, no document number)
