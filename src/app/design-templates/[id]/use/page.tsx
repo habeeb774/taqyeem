@@ -120,6 +120,7 @@ function wrap(ctx: CanvasRenderingContext2D, text: string, maxWidth: number, mul
 export default function UsePage() {
   const { id } = useParams<{ id: string }>();
   const params = useSearchParams();
+  const previewOnly = params.get('preview') !== null;
   const [template, setTemplate] = useState<any>(null);
   const [fields, setFields] = useState<Field[]>([]);
   const [fonts, setFonts] = useState<any[]>([]);
@@ -128,16 +129,33 @@ export default function UsePage() {
   const [format, setFormat] = useState<'png' | 'jpg'>('png');
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
+  const [failed, setFailed] = useState(false);
+  const [loadAttempt, setLoadAttempt] = useState(0);
+  const [permissions, setPermissions] = useState<string[]>([]);
+  const exporting = useRef(false);
   const [viewport, setViewport] = useState(700);
   const holder = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    let cancelled = false;
+    setTemplate(null);
+    setMessage('');
+    setFailed(false);
     Promise.all([
       designApi(`/api/design-templates/${id}`),
       designApi('/api/design-fonts'),
-      designApi('/api/design-data'),
+      designApi('/api/app/auth/me'),
     ])
-      .then(([templateResponse, fontResponse, dataResponse]) => {
+      .then(async ([templateResponse, fontResponse, userResponse]) => {
+        if (cancelled) return;
+        const nextPermissions: string[] = userResponse.permissions || [];
+        if (!previewOnly && !nextPermissions.includes('design_templates.use')) {
+          throw new Error('ليس لديك صلاحية استخدام هذا القالب. يمكنك فتح المعاينة من قائمة القوالب.');
+        }
+        const dataResponse = previewOnly
+          ? { employees: [], departments: [], branches: [], job_titles: [] }
+          : await designApi('/api/design-data');
+        if (cancelled) return;
         const nextFields = templateResponse.fields.map(norm);
         const initial: Record<string, string> = {};
 
@@ -156,6 +174,7 @@ export default function UsePage() {
         setFonts(fontResponse.fonts);
         setData(dataResponse);
         setValues(initial);
+        setPermissions(nextPermissions);
 
         fontResponse.fonts
           .filter((font: any) => font.url)
@@ -168,8 +187,13 @@ export default function UsePage() {
             document.head.appendChild(link);
           });
       })
-      .catch((error) => setMessage(error.message));
-  }, [id]);
+      .catch((error) => {
+        if (cancelled) return;
+        setFailed(true);
+        setMessage(error.message);
+      });
+    return () => { cancelled = true; };
+  }, [id, previewOnly, loadAttempt]);
 
   useEffect(() => {
     const observer = new ResizeObserver((entries) => {
@@ -294,7 +318,10 @@ export default function UsePage() {
   }
 
   async function exportDesign(save: boolean) {
+    if (exporting.current || previewOnly || !permissions.includes('design_templates.export')) return;
+    exporting.current = true;
     try {
+      setMessage('');
       setSaving(true);
       const blob = await render();
       const name = `${template.slug || 'design'}-${Date.now()}.${format}`;
@@ -318,7 +345,6 @@ export default function UsePage() {
             height: Number(template.height),
           }),
         });
-        setMessage('تم حفظ التصميم في السجل');
       }
 
       const objectUrl = URL.createObjectURL(blob);
@@ -327,9 +353,11 @@ export default function UsePage() {
       link.download = name;
       link.click();
       setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+      setMessage(save ? 'تم حفظ التصميم في السجل وبدأ تحميل الملف.' : 'بدأ تحميل التصميم على جهازك.');
     } catch (error: any) {
       setMessage(error.message);
     } finally {
+      exporting.current = false;
       setSaving(false);
     }
   }
@@ -337,7 +365,10 @@ export default function UsePage() {
   if (!template) {
     return (
       <DesignShell>
-        <div className="ds-loading">{message || 'جارٍ تحميل القالب...'}</div>
+        <div className="ds-loading">
+          <p role={failed ? 'alert' : 'status'}>{message || 'جارٍ تحميل القالب...'}</p>
+          {failed && <button className="ds-btn" onClick={() => setLoadAttempt(value => value + 1)}>إعادة المحاولة</button>}
+        </div>
       </DesignShell>
     );
   }
@@ -350,15 +381,23 @@ export default function UsePage() {
         <div className="ds-head">
           <div>
             <h1>
-              {params.get('preview') ? 'معاينة القالب' : 'استخدام القالب'}: {template.name}
+              {previewOnly ? 'معاينة القالب' : 'استخدام القالب'}: {template.name}
             </h1>
-            <p>املأ الحقول وشاهد النتيجة مباشرة، ثم صدّر التصميم بالأبعاد الأصلية.</p>
+            <p>{previewOnly ? 'شاهد شكل القالب قبل استخدامه.' : 'املأ الحقول وشاهد النتيجة مباشرة، ثم حمّل التصميم.'}</p>
           </div>
         </div>
 
         <div className="du-layout">
           <section className="du-form">
+            {previewOnly ? (
+              <>
+                <h2>معاينة القالب</h2>
+                <p className="du-note">هذه معاينة للبيانات الافتراضية للقالب.</p>
+                {permissions.includes('design_templates.use') && <a className="ds-btn" href={`/design-templates/${id}/use`}>استخدام القالب</a>}
+              </>
+            ) : <>
             <h2>البيانات المتغيرة</h2>
+            <fieldset disabled={saving} style={{ border: 0, margin: 0, padding: 0, minWidth: 0 }}>
             {variables.length ? renderVariableFields() : (
               <p className="du-note">هذا القالب لا يحتوي حقولًا متغيرة. يمكنك تصديره مباشرة.</p>
             )}
@@ -371,19 +410,21 @@ export default function UsePage() {
                 JPG
               </button>
             </div>
+            </fieldset>
 
-            <div className="du-actions">
+            {permissions.includes('design_templates.export') ? <div className="du-actions">
               <button className="ds-btn" disabled={saving} onClick={() => exportDesign(false)}>
                 {saving ? 'جاري الإصدار...' : 'تحميل فقط'}
               </button>
               <button className="ds-btn ghost" disabled={saving} onClick={() => exportDesign(true)}>
                 حفظ في النظام وتحميل
               </button>
-            </div>
+            </div> : <p className="du-note">يمكنك تعبئة البيانات ومعاينة التصميم. تحميله يحتاج صلاحية تصدير التصاميم.</p>}
 
             <p className="du-note">
               يتم التصدير بالمقاس الأصلي {template.width}×{template.height} مع تحميل الخطوط المختارة وبدون أدوات التحرير.
             </p>
+            </>}
           </section>
 
           <section className="du-preview" ref={holder}>
@@ -411,7 +452,7 @@ export default function UsePage() {
       </main>
 
       {message && (
-        <div className="ds-toast" onClick={() => setMessage('')}>
+        <div className="ds-toast" role="status" onClick={() => setMessage('')}>
           {message}
         </div>
       )}
