@@ -23,6 +23,7 @@ function node(id) {
         toggle() {},
       },
       setAttribute() {},
+      querySelector() { return null; },
       appendChild() {},
       addEventListener() {},
     });

@@ -1252,11 +1252,21 @@ function showSection(id){
   if(id==='approvals') renderApprovals();
   if(id==='workflows') loadWorkflowManager();
 }
+var formCatalogState='loading';
 function renderForms(){
+  if(formCatalogState!=='ready'){
+    $('secLabel').textContent='النماذج';
+    $('empGrid').innerHTML='<div class="arch-empty" style="grid-column:1/-1">'+(formCatalogState==='loading'?'جارٍ تحميل النماذج...':'تعذر تحميل النماذج. <button type="button" class="btn">إعادة المحاولة</button>')+'</div>';
+    var retry=$('empGrid').querySelector('button');if(retry)retry.onclick=loadFormTemplates;
+    return;
+  }
   var base=deptForms();
   var q=($('srch')?$('srch').value:'').trim();
   var list=base.filter(function(f){ var mc=currentFilter==='all'||f.cat===currentFilter; var mq=!q||f.name.indexOf(q)>=0||(f.desc&&f.desc.indexOf(q)>=0); return mc&&mq; });
-  $('empGrid').innerHTML=list.length?list.map(cardHtml).join(''):'<p style="grid-column:1/-1;color:var(--text3);padding:30px 0;text-align:center;">لا توجد نماذج مطابقة</p>';
+  var emptyMessage=base.length?'لا توجد نماذج مطابقة للبحث أو التصفية':'لا توجد نماذج متاحة لك حاليًا';
+  $('empGrid').innerHTML=list.length?list.map(cardHtml).join(''):'<div class="arch-empty" style="grid-column:1/-1">'+emptyMessage+(base.length?' <button type="button" class="btn">عرض جميع النماذج</button>':'')+'</div>';
+  var reset=$('empGrid').querySelector('button');
+  if(!list.length&&reset)reset.onclick=function(){if($('srch'))$('srch').value='';currentFilter='all';renderForms();};
   $('secLabel').textContent=currentFilter==='all'?('النماذج ('+list.length+')'):(currentFilter+' ('+list.length+')');
 }
 
@@ -2668,18 +2678,16 @@ async function addCustom(){
 
 function toast(msg){ var t=$('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(window._tt); window._tt=setTimeout(function(){t.classList.remove('show');},2600); }
 
-/* Form catalog is Neon-backed. The bundled FORMS list is used only to seed an empty tenant once. */
+/* Load only the catalog permitted by the server. */
 async function loadFormTemplates(){
+  formCatalogState='loading';renderForms();
   try{
     var r=await fetch('/api/app/forms?templates=1',{credentials:'same-origin',cache:'no-store'}),j=await r.json();
     if(!r.ok||!j.ok)throw new Error('templates_unavailable');
-    if(!(j.templates||[]).length){
-      allForms=FORMS.slice();
-      await Promise.all(FORMS.map(function(f){return fetch('/api/app/forms',{method:'PUT',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({template_key:f.id,name:f.name,category:f.cat||'other',icon:f.icon||null,description:f.desc||'',definition:f})}).catch(function(){});}));
-      return;
-    }
-    allForms=j.templates.map(function(t){var d=t.definition||{};return Object.assign({},d,{id:t.template_key,name:t.name,cat:t.category,icon:t.icon||d.icon,desc:t.description||d.desc});});
-  }catch(e){ allForms=[]; toast('تعذر تحميل قوالب النماذج من قاعدة البيانات'); }
+    allForms=(j.templates||[]).map(function(t){var d=t.definition||{};return Object.assign({},d,{id:t.template_key,name:t.name,cat:t.category,icon:t.icon||d.icon,desc:t.description||d.desc});});
+    formCatalogState='ready';
+  }catch(e){ allForms=[];formCatalogState='error'; }
+  renderForms();
 }
 
 /* ── INIT ── */
