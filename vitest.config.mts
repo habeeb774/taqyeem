@@ -15,7 +15,7 @@ export default defineConfig({
     include: [
       'src/components/ui/**/*.test.tsx', 'src/app/login/**/*.test.ts',
       'src/app/my-evaluations/**/*.test.{ts,tsx}', 'src/app/design-templates/**/*.test.tsx',
-      'src/lib/**/*.test.ts', 'src/server/**/*.test.ts',
+      'src/lib/**/*.test.ts', 'src/server/**/*.test.ts', 'src/app/forms/**/*.test.ts',
     ],
   },
 });

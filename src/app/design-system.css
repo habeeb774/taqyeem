@@ -366,3 +366,13 @@
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   }
 }
+.forms-preview {
+  width: min(794px, 100%);
+  height: 1123px;
+  margin: 0 auto;
+  display: block;
+  border: 1px solid var(--dst-color-border);
+  border-radius: 6px;
+  background: #fff;
+  box-shadow: 0 2px 14px rgba(0, 0, 0, 0.06);
+}
