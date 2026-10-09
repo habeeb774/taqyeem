@@ -1,6 +1,7 @@
-export function availableTasks(permissions: string[]) {
+export function availableTasks(permissions: string[], hasEmployee = false) {
   const can = (permission: string) => permissions.includes(permission);
   return [
+    hasEmployee && { label: 'اطّلع على تقييمك', href: '/my-evaluations' },
     can('evaluations.view') && can('evaluations.edit') && { label: 'قيّم موظفيك', href: '/assessment?task=evaluate' },
     can('evaluations.view') && ['evaluations.review', 'evaluations.approve', 'evaluations.publish'].some(can)
       && { label: 'راجع التقييمات', href: '/assessment?task=review' },

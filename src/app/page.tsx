@@ -35,7 +35,7 @@ export default async function Home() {
 
   const branding = await getPublicBranding();
   const can = (permission: string) => user.permissions.includes(permission);
-  const tasks = availableTasks(user.permissions);
+  const tasks = availableTasks(user.permissions, Boolean(user.user.employeeId));
   const systems = [
     can("evaluations.view") && {
       title: "نظام التقييم",
@@ -171,10 +171,10 @@ export default async function Home() {
             الصفحة الرئيسية
           </span>
           <h1 style={{ margin: "0 0 16px", fontSize: 28, fontWeight: 500 }}>
-            ماذا تريد إنجازه؟
+            {tasks.length ? 'ماذا تريد إنجازه؟' : 'اختر النظام'}
           </h1>
           <p style={{ margin: 0, color: "var(--dst-color-text-muted)", fontSize: 14, lineHeight: 2 }}>
-            مرحبًا، {user.user.name || user.user.email}. اختر مهمة مباشرة، أو افتح أحد الأنظمة المتاحة لك.
+            مرحبًا، {user.user.name || user.user.email}. {tasks.length ? 'اختر مهمة مباشرة، أو افتح أحد الأنظمة المتاحة لك.' : 'افتح أحد الأنظمة المتاحة لك.'}
           </p>
         </div>
         {tasks.length > 0 && (

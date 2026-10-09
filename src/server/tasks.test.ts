@@ -2,6 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { availableTasks } from './tasks';
 
 describe('permitted task shortcuts', () => {
+  it('offers the personal evaluation task to an employee without management permissions', () => {
+    expect(availableTasks([], true)).toEqual([{ label: 'اطّلع على تقييمك', href: '/my-evaluations' }]);
+  });
   it('does not offer privileged tasks to a user without permissions', () => {
     expect(availableTasks([])).toEqual([]);
     expect(availableTasks(['forms.view', 'evaluations.view'])).toEqual([]);
