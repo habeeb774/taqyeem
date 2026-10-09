@@ -15,7 +15,7 @@ function draft(ok: boolean) {
     draftDocumentNo: (id: string) => 'draft_' + id, toast: vi.fn(), _saveTimer: null,
   });
   const source = readFileSync('src/templates/forms.html', 'utf8');
-  page.window.eval(source.slice(source.indexOf('var draftSaveQueue='), source.indexOf('function nextDocNo(){')));
+  page.window.eval(source.slice(source.indexOf('var draftSaveQueue='), source.indexOf('async function nextDocNoFromNeon(){')));
   page.window.eval(source.slice(source.indexOf('async function saveDraft(){'), source.indexOf('/* the fill view IS')));
   const runtime = page.window as unknown as {
     saveDraft(): Promise<boolean>; closeForm(): Promise<void>; clearDraft(id: string): Promise<boolean>; activeId: string | null;

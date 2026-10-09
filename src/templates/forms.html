@@ -1064,7 +1064,7 @@ let currentDept = null, pdfCount = 0, currentFilter = 'all', activeId = null, it
 let hiddenFields = {}, labelOverrides = {}, currentSigs = [];
 let docTitle = '', docDept = '';
 /* ── persistence keys ── */
-var LS_SEQ='asw_seq', LS_DRAFTS='asw_drafts', LS_ARCHIVE='asw_archive';
+var LS_DRAFTS='asw_drafts', LS_ARCHIVE='asw_archive';
 var currentDocNo='';
 var BLANK_MODE=false;
 var taFontSize={};   // textarea font-size multiplier per field id (em)
@@ -1125,21 +1125,14 @@ function persistDraft(id,state){
   draftSaveQueue=request.catch(function(){});
   return request;
 }
-function nextDocNo(){
-  var y=new Date().getFullYear();
-  var deptPref=(currentDept && currentDept.pref)?currentDept.pref:'HR';
-  if(currentUser){
-    var key=LS_SEQ+'_'+currentUser.id;
-    var n=lsGet(key,0)+1; lsSet(key,n);
-    return deptPref+'-'+currentUser.prefix+'-'+String(n).padStart(4,'0');
-  }
-  var n2=lsGet(LS_SEQ+'_'+deptPref,0)+1; lsSet(LS_SEQ+'_'+deptPref,n2);
-  return deptPref+'-'+y+'-'+String(n2).padStart(4,'0');
-}
 async function nextDocNoFromNeon(){
   var pref=(currentDept&&currentDept.pref)||'HR', userPref=(currentUser&&currentUser.prefix)||'HB';
-  try{var r=await fetch('/api/app/forms',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({action:'next_number',prefix:pref+'-'+userPref,sequence_key:pref+'-'+userPref})});var j=await r.json();if(r.ok&&j.ok&&j.document_no)return j.document_no;}catch(e){}
-  return nextDocNo();
+  try{
+    var r=await fetch('/api/app/forms',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({action:'next_number',prefix:pref+'-'+userPref,sequence_key:pref+'-'+userPref})});
+    var j=await r.json();
+    if(r.ok&&j.ok&&typeof j.document_no==='string'&&j.document_no.trim())return j.document_no;
+  }catch(e){}
+  throw new Error('تعذر الحصول على رقم المستند. تحقق من الاتصال وأعد المحاولة');
 }
 /* selectable document fonts (family CSS name -> label). Families embedded in <style>. */
 var DOC_FONTS=[
@@ -2580,7 +2573,7 @@ async function exportPDF(){
   if(!validate()) return;
   setDocumentActionBusy(true);
   try{
-    currentDocNo=await nextDocNoFromNeon();
+    currentDocNo=currentDocNo||await nextDocNoFromNeon();
     var v=vals();
     var document=await archiveDoc(currentDocNo,v,'issued');
     var audit=await fetch('/api/app/forms/print',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({document_id:document.id})});
