@@ -1,8 +1,10 @@
+import { revalidateTag, unstable_cache } from 'next/cache';
 import { pool } from '@/db';
 import { must, type SecurityContext } from '@/db/queries/security';
 import { resolveDefaultOrganizationId } from '@/server/recruitment/org';
 
 const SETTINGS_KEY = 'app.branding';
+const BRANDING_CACHE_TAG = 'branding';
 
 export const FONT_CHOICES = ['sans', 'alexandria', 'cairo', 'tajawal'] as const;
 export type FontChoice = (typeof FONT_CHOICES)[number];
@@ -47,14 +49,25 @@ function normalize(value: unknown): BrandingSettings {
   };
 }
 
-export async function getPublicBranding(): Promise<BrandingSettings> {
-  try {
+// Every page's layout reads branding, so cache it instead of querying the
+// database on each request; updateBranding invalidates the tag on save.
+// Errors are caught outside the cache so a failed lookup is never stored.
+const loadPublicBranding = unstable_cache(
+  async (): Promise<BrandingSettings> => {
     const organizationId = await resolveDefaultOrganizationId();
     const result = await pool.query(
       `select value from public.system_settings where organization_id=$1::uuid and key=$2 limit 1`,
       [organizationId, SETTINGS_KEY],
     );
     return normalize(result.rows[0]?.value);
+  },
+  ['public-branding'],
+  { tags: [BRANDING_CACHE_TAG], revalidate: 3600 },
+);
+
+export async function getPublicBranding(): Promise<BrandingSettings> {
+  try {
+    return await loadPublicBranding();
   } catch {
     return DEFAULT_BRANDING;
   }
@@ -110,5 +123,6 @@ export async function updateBranding(context: SecurityContext, input: BrandingSe
     `,
     [context.organizationId, SETTINGS_KEY, JSON.stringify(value), context.user.id],
   );
+  revalidateTag(BRANDING_CACHE_TAG, { expire: 0 });
   return value;
 }
