@@ -1,10 +1,10 @@
-import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import type { CSSProperties } from "react";
 
 import { pool } from "@/db";
 import { requireUser } from "@/server/context";
-import { Badge, Button, PageHeader, Textarea } from "@/components/ui";
+import { Badge, PageHeader } from "@/components/ui";
+import { ReviewForm } from './ReviewForm';
 
 type AnswerRow = {
   evaluation_id: string;
@@ -45,70 +45,6 @@ function statusLabel(status: string) {
     locked: "مقفل",
   };
   return labels[status] || status;
-}
-
-async function requestReview(formData: FormData) {
-  "use server";
-  const context = await requireUser();
-  if (!context.user.employeeId) {
-    throw Object.assign(new Error("FORBIDDEN"), { status: 403 });
-  }
-
-  const evaluationId = String(formData.get("evaluation_id") || "");
-  const note = String(formData.get("review_note") || "").trim();
-  if (note.length < 5) return;
-
-  const result = await pool.query<{
-    id: string;
-    evaluator_user_id: string;
-    status: string;
-  }>(
-    `select id,evaluator_user_id,status
-     from public.evaluations
-     where id=$1::uuid
-       and employee_id=$2::uuid
-       and status::text=any($3::text[])
-     limit 1`,
-    [evaluationId, context.user.employeeId, visibleStatuses],
-  );
-  const evaluation = result.rows[0];
-  if (!evaluation) {
-    throw Object.assign(new Error("FORBIDDEN"), { status: 403 });
-  }
-
-  await pool.query(
-    `insert into public.audit_logs(
-       organization_id,user_id,action,entity_type,entity_id,new_values,reason
-     ) values(
-       $1::uuid,$2::uuid,'evaluation.employee_review_requested',
-       'evaluation',$3::uuid,$4::jsonb,$5
-     )`,
-    [
-      context.organizationId,
-      context.user.id,
-      evaluationId,
-      JSON.stringify({ employee_note: note, status: evaluation.status }),
-      note,
-    ],
-  );
-
-  await pool.query(
-    `insert into public.notifications(
-       organization_id,user_id,title,body,kind,entity_type,entity_id
-     ) values(
-       $1::uuid,$2::uuid,$3,$4,
-       'evaluation_review_request','evaluation',$5::uuid
-     )`,
-    [
-      context.organizationId,
-      String(evaluation.evaluator_user_id),
-      "طلب مراجعة تقييم",
-      `${context.user.name || context.user.email}: ${note}`,
-      evaluationId,
-    ],
-  );
-
-  revalidatePath("/my-evaluations");
 }
 
 async function loadEvaluations(employeeId: string) {
@@ -201,24 +137,6 @@ function AnswerCard({ answer }: { answer: AnswerRow }) {
         <p style={styles.commentText}>ملاحظة المقيّم: {answer.comment}</p>
       )}
     </div>
-  );
-}
-
-function ReviewForm({ evaluationId }: { evaluationId: string }) {
-  return (
-    <form action={requestReview} style={styles.reviewForm}>
-      <input type="hidden" name="evaluation_id" value={evaluationId} />
-      <Textarea
-        name="review_note"
-        required
-        minLength={5}
-        placeholder="اكتب ملاحظات طلب المراجعة..."
-        style={{ minHeight: 96, resize: "vertical" }}
-      />
-      <Button type="submit" style={{ width: "fit-content" }}>
-        طلب مراجعة
-      </Button>
-    </form>
   );
 }
 
@@ -402,10 +320,5 @@ const styles = {
     color: "#374151",
     fontSize: 13,
     lineHeight: 1.8,
-  },
-  reviewForm: {
-    display: "grid",
-    gap: 10,
-    marginTop: 4,
   },
 } satisfies Record<string, CSSProperties>;
