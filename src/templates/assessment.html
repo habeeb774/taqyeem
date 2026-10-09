@@ -979,7 +979,7 @@ function getCriteria(n){var c=CC[n];if(c&&c.length)return c;var x=EXTRA_CRITERIA
 const EMP_DATA={};USERS.forEach(u=>{EMP_DATA[u.id]=u.emps;});
 
 let cu=null,allE=[],vis=[],selId=null,evals={};
-let _mpSel=null,_eId=null,_eCrit=CRITERIA,_eStep=0,_eAns={},_eNotes='';
+let _mpSel=null,_eId=null,_eCrit=CRITERIA,_eStep=0,_eAns={},_eComments={},_eNotes='';
 
 const $=id=>document.getElementById(id);
 const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -1304,6 +1304,23 @@ function renderEvalStep(){
   var hn=$('evalHint');
   if(hn){var ht=(!isNotes&&crit[_eStep].hint)||'';hn.textContent=ht;hn.style.display=ht?'block':'none';}
   const opt=$('evalOptions');opt.innerHTML='';
+  async function saveAnswerAndAdvance(key){
+    const step=_eStep;
+    const commentInput=$('criterionComment');if(commentInput)commentInput.disabled=true;
+    document.querySelectorAll('.eval-opt').forEach(x=>{x.disabled=true;});
+    $('evalNav').querySelectorAll('button').forEach(x=>{x.disabled=true;});
+    const next=$('evalNav').querySelector('.eval-next');
+    if(next)next.textContent='جارٍ حفظ الإجابة...';
+    const saved=window.taqAutosaveAnswer?await window.taqAutosaveAnswer(key,_eAns[key],_eComments[key]||''):true;
+    if(_eStep!==step||_eCrit[step].key!==key)return;
+    if(saved){_eStep++;renderEvalStep();}
+    else{
+      if(commentInput)commentInput.disabled=false;
+      document.querySelectorAll('.eval-opt').forEach(x=>{x.disabled=false;});
+      $('evalNav').querySelectorAll('.eval-prev').forEach(x=>{x.disabled=false;});
+      if(next){next.disabled=false;next.textContent='إعادة الحفظ';}
+    }
+  }
   if(isNotes){
     opt.innerHTML=`<div class="eval-notes-wrap"><div class="eval-notes-head">ملاحظات إضافية (اختياري)</div><textarea class="eval-notes-ta" id="evalTa" placeholder="اكتب ملاحظاتك حول أداء الموظف…">${esc(_eNotes)}</textarea></div>`;
     setTimeout(()=>{const ta=$('evalTa');if(ta)ta.oninput=()=>{_eNotes=ta.value;if(window.taqAutosaveNotes)window.taqAutosaveNotes(_eNotes);};},0);
@@ -1314,29 +1331,36 @@ function renderEvalStep(){
       b.innerHTML=`<span class="eval-opt-label">${r.label}</span><span class="eval-opt-val">${r.val}</span>`;
       b.onclick=async()=>{
         if(b.disabled)return;
-        const step=_eStep;
         _eAns[key]=r.val;
-        document.querySelectorAll('.eval-opt').forEach(x=>{x.classList.remove('sel');x.disabled=true;});
+        document.querySelectorAll('.eval-opt').forEach(x=>{x.classList.remove('sel');});
         b.classList.add('sel');
-        $('evalNav').querySelectorAll('button').forEach(x=>{x.disabled=true;});
-        const next=$('evalNav').querySelector('.eval-next');
-        if(next){next.disabled=true;next.textContent='جارٍ حفظ الإجابة...';}
-        const saved=window.taqAutosaveAnswer?await window.taqAutosaveAnswer(key,r.val):true;
-        if(_eStep!==step||_eCrit[step].key!==key)return;
-        if(saved){_eStep++;renderEvalStep();}
-        else{
-          document.querySelectorAll('.eval-opt').forEach(x=>{x.disabled=false;});
-          $('evalNav').querySelectorAll('.eval-prev').forEach(x=>{x.disabled=false;});
-          if(next){next.disabled=true;next.textContent='اختر الدرجة لإعادة الحفظ';}
+        if(crit[_eStep].comment_required){
+          const next=$('evalNav').querySelector('.eval-next');
+          next.disabled=!String(_eComments[key]||'').trim();
+          $('criterionComment').focus();
+        }else{
+          await saveAnswerAndAdvance(key);
         }
       };
       opt.appendChild(b);
     });
+    if(crit[_eStep].comment_required){
+      const wrap=document.createElement('div');wrap.className='eval-notes-wrap';
+      const label=document.createElement('label');label.className='eval-notes-head';label.htmlFor='criterionComment';label.textContent='ملاحظة على هذا المعيار (مطلوبة)';
+      const input=document.createElement('textarea');input.className='eval-notes-ta';input.id='criterionComment';input.required=true;input.value=_eComments[key]||'';
+      input.placeholder='اكتب سبب الدرجة أو مثالًا يدعم تقييمك';
+      input.oninput=()=>{_eComments[key]=input.value;const next=$('evalNav').querySelector('.eval-next');next.disabled=_eAns[key]==null||!input.value.trim();};
+      wrap.append(label,input);opt.appendChild(wrap);
+    }
   }
   const nav=$('evalNav');nav.innerHTML='';
   if(_eStep>0){const p=document.createElement('button');p.className='eval-prev';p.textContent='السابق';p.onclick=()=>{_eStep--;renderEvalStep();};nav.appendChild(p);}
   if(isNotes){const f=document.createElement('button');f.className='eval-next';f.textContent='إنهاء التقييم';f.onclick=finishEval;nav.appendChild(f);}
-  else{const k=crit[_eStep].key,ok=_eAns[k]!=null;const nx=document.createElement('button');nx.className='eval-next';nx.textContent='التالي';nx.disabled=!ok;nx.onclick=()=>{_eStep++;renderEvalStep();};nav.appendChild(nx);}
+  else{
+    const k=crit[_eStep].key,ok=_eAns[k]!=null&&(!crit[_eStep].comment_required||String(_eComments[k]||'').trim());
+    const nx=document.createElement('button');nx.className='eval-next';nx.textContent='التالي';nx.disabled=!ok;
+    nx.onclick=()=>saveAnswerAndAdvance(k);nav.appendChild(nx);
+  }
 }
 function finishEval(){
   if(!evals[_eId])evals[_eId]={};
@@ -1890,7 +1914,7 @@ function atApply(){
 function atStep(k,d){ _at[k]=Math.max(0,(parseInt(_at[k])||0)+d); var el=$('at_'+k); if(el)el.value=_at[k]; atApply(); }
 function atReset(){ for(var k in DEDUCT){_at[k]=0; var el=$('at_'+k); if(el)el.value=0;} atApply(); }
 </script>
-<script src="/full-services.js?v=20261009-answer-save"></script>
+<script src="/full-services.js?v=20261009-criterion-comments"></script>
 </body>
 </html>
 

@@ -286,15 +286,19 @@
         if(can('evaluations.reopen')){var why=prompt('تم إرسال هذا التقييم. اكتب سبب إعادة فتحه للتعديل:');if(why===null)return;if(String(why).trim().length<3){toast('يجب كتابة سبب واضح');return;}await api('/api/app/evaluations',{method:'POST',body:{action:'draft',evaluation_id:eid,reason:String(why).trim()}});status='draft';A.evaluationStatus[emp.id]='draft';}
         else{toast('تم إرسال التقييم ولا يمكن تعديله إلا بعد إعادة فتحه من المسؤول');return;}
       }
-      _eCrit=crit;_eAns={};(det.answers||[]).forEach(function(a){_eAns[String(a.criterion_id)]=Number(a.score);});_eNotes=(det.evaluation&&det.evaluation.notes)||'';var firstMissing=crit.findIndex(function(c){return _eAns[String(c.key)]==null;});_eStep=firstMissing>=0?firstMissing:crit.length;hide('pgDash');pg('pgEval','column');renderEvalStep();
+      _eCrit=crit;_eAns={};_eComments={};
+      (det.answers||[]).forEach(function(a){_eAns[String(a.criterion_id)]=Number(a.score);_eComments[String(a.criterion_id)]=a.comment||'';});
+      _eNotes=(det.evaluation&&det.evaluation.notes)||'';
+      var firstMissing=crit.findIndex(function(c){return _eAns[String(c.key)]==null||(c.comment_required&&!String(_eComments[c.key]||'').trim());});
+      _eStep=firstMissing>=0?firstMissing:crit.length;hide('pgDash');pg('pgEval','column');renderEvalStep();
     }catch(e){toast(humanError(e.message));}
   };
 
   var _autosaveNotesTimer=null;
-  window.taqAutosaveAnswer=async function(criterionId,score){
+  window.taqAutosaveAnswer=async function(criterionId,score,comment){
     var emp=empById(_eId),eid=emp&&A.evaluationIds[emp.id];if(!eid||_eMode!=='criteria')return;
     try{
-      var r=await api('/api/app/evaluations',{method:'POST',body:{action:'autosave',evaluation_id:eid,answer:{criterion_id:String(criterionId),score:Number(score),comment:''}}});
+      var r=await api('/api/app/evaluations',{method:'POST',body:{action:'autosave',evaluation_id:eid,answer:{criterion_id:String(criterionId),score:Number(score),comment:String(comment||'')}}});
       if(emp&&r.score!=null){evals[emp.id]=Object.assign(evals[emp.id]||{},{_score:Number(r.score)});}
       return true;
     }catch(e){toast('لم تُحفظ الإجابة. اختر الدرجة مجددًا لإعادة المحاولة: '+humanError(e.message));return false;}
@@ -315,7 +319,10 @@
         await api('/api/app/attendance',{method:'POST',body:{cycle_id:currentCycleId(),employee_id:emp.id,notes:_eNotes||'',entries:entries}});
         var att={};for(var kk in DEDUCT)att[kk]=parseInt(_at[kk])||0;evals[emp.id]=Object.assign(evals[emp.id]||{},{att:att,notes:_eNotes,_attendanceScore:Math.max(0,score),doneAt:nowDT().date+' — '+nowDT().time});
       }else{
-        var eid=A.evaluationIds[emp.id];if(!eid)throw new Error('evaluation_not_found');var answers=_eCrit.map(function(c){return {criterion_id:c.key,score:Number(_eAns[c.key]),comment:''};});if(answers.some(function(a){return !a.score;}))throw new Error('evaluation_incomplete');
+        var eid=A.evaluationIds[emp.id];if(!eid)throw new Error('evaluation_not_found');
+        var answers=_eCrit.map(function(c){return {criterion_id:c.key,score:Number(_eAns[c.key]),comment:String(_eComments[c.key]||'')};});
+        if(answers.some(function(a){return !a.score;}))throw new Error('evaluation_incomplete');
+        if(_eCrit.some(function(c){return c.comment_required&&!String(_eComments[c.key]||'').trim();}))throw new Error('required_comment_missing');
         var saved=await api('/api/app/evaluations',{method:'POST',body:{action:'save',evaluation_id:eid,notes:_eNotes||'',answers:answers}});evals[emp.id]=Object.assign(evals[emp.id]||{},{answers:Object.assign({},_eAns),notes:_eNotes,_score:saved.score!=null?Number(saved.score):null,doneAt:nowDT().date+' — '+nowDT().time});
         if(can('evaluations.submit')){await api('/api/app/evaluations',{method:'POST',body:{action:'submitted',evaluation_id:eid}});A.evaluationStatus[emp.id]='submitted';}
       }

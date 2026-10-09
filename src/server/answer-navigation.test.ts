@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { JSDOM } from 'jsdom';
 import { describe, expect, it, vi } from 'vitest';
 
-function question() {
+function question(commentRequired = false) {
   const page = new JSDOM('<div id="evalProg"></div><div id="evalDots"></div><div id="evalStepLbl"></div><div id="evalQ"></div><div id="evalHint"></div><div id="evalOptions"></div><div id="evalNav"></div>', {
     runScripts: 'outside-only',
   });
@@ -10,8 +10,8 @@ function question() {
   const save = vi.fn(() => new Promise<boolean>(done => { resolve = done; }));
   Object.assign(page.window, {
     $: (id: string) => page.window.document.getElementById(id),
-    _eCrit: [{ key: 'first', text: 'First' }, { key: 'second', text: 'Second' }],
-    _eStep: 0, _eAns: {}, _eNotes: '',
+    _eCrit: [{ key: 'first', text: 'First', comment_required: commentRequired }, { key: 'second', text: 'Second' }],
+    _eStep: 0, _eAns: {}, _eComments: {}, _eNotes: '',
     RATINGS: [{ val: 1, label: 'One' }, { val: 2, label: 'Two' }],
     scoreTone: () => 'none', taqAutosaveAnswer: save,
   });
@@ -41,6 +41,21 @@ describe('answer navigation', () => {
     await vi.waitFor(() => expect(page.window.document.querySelector('.eval-next')!.textContent).toContain('إعادة الحفظ'));
     expect(runtime._eStep).toBe(0);
     expect((page.window.document.querySelector('button.eval-opt') as HTMLButtonElement).disabled).toBe(false);
+    page.window.close();
+  });
+  it('requires and saves a criterion comment before advancing', async () => {
+    const { page, runtime, save, resolve } = question(true);
+    (page.window.document.querySelector('button.eval-opt') as HTMLButtonElement).click();
+    const next = page.window.document.querySelector('.eval-next') as HTMLButtonElement;
+    expect(next.disabled).toBe(true);
+    expect(save).not.toHaveBeenCalled();
+    const input = page.window.document.getElementById('criterionComment') as HTMLTextAreaElement;
+    input.value = 'مثال يدعم الدرجة';
+    input.dispatchEvent(new page.window.Event('input'));
+    next.click();
+    expect(save).toHaveBeenCalledWith('first', 1, 'مثال يدعم الدرجة');
+    resolve(true);
+    await vi.waitFor(() => expect(runtime._eStep).toBe(1));
     page.window.close();
   });
 });
