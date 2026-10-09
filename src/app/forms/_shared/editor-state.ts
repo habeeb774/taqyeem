@@ -16,6 +16,7 @@ export type Employee = {
   manager_name?: string | null;
 };
 
+// Same list as DOC_FONTS in the legacy editor, so documents saved with any of them keep their font.
 export const DOC_FONTS: [string, string][] = [
   ["'TSans-Light'", 'Sans خفيف'],
   ["'TSans-Regular'", 'Sans عادي'],
@@ -24,9 +25,15 @@ export const DOC_FONTS: [string, string][] = [
   ["'TSans-Black'", 'Sans أسود'],
   ["'TDisp-Light'", 'Serif Display خفيف'],
   ["'TDisp-Regular'", 'Serif Display عادي'],
+  ["'TDisp-Medium'", 'Serif Display متوسط'],
+  ["'TDisp-Bold'", 'Serif Display عريض'],
+  ["'TDisp-Black'", 'Serif Display أسود'],
+  ["'TText-Light'", 'Serif Text خفيف'],
+  ["'TText-Regular'", 'Serif Text عادي'],
   ["'TText-Medium'", 'Serif Text متوسط'],
   ["'TText-Bold'", 'Serif Text عريض'],
   ["'TText-Black'", 'Serif Text أسود'],
+  ["'Alexandria'", 'Alexandria'],
 ];
 
 // The legacy editor hard-codes the HR department and the HR-HB number prefix.
