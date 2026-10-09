@@ -51,3 +51,12 @@ select,
 textarea {
   font-family: var(--app-font) !important;
 }
+
+/* Match the original HTML's rendering without changing element weights. */
+body {
+  -webkit-font-smoothing: antialiased;
+}
+
+.unified-topbar__brand {
+  font-weight: 500;
+}
