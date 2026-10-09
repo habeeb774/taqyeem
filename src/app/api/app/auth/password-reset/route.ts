@@ -55,18 +55,25 @@ function appOrigin(req: NextRequest) {
 
 async function resetPassword(token: string, password: string) {
   const tokenDigest = digest(token);
-  const tokenResult = await pool.query(
+  const passwordHash = await hash(password, 12);
+  const client = await pool.connect();
+  try {
+    await client.query('begin');
+    const tokenResult = await client.query(
     `
       select identifier
       from public.verification_tokens
       where token = $1
+        and identifier like 'password-reset:%'
         and expires > now()
       limit 1
+      for update
     `,
     [tokenDigest],
   );
 
   if (!tokenResult.rows[0]) {
+    await client.query('rollback');
     return NextResponse.json(
       { ok: false, error: 'RESET_TOKEN_INVALID' },
       { status: 400 },
@@ -77,11 +84,7 @@ async function resetPassword(token: string, password: string) {
     /^password-reset:/,
     '',
   );
-  const passwordHash = await hash(password, 12);
-
-  await pool.query('begin');
-  try {
-    await pool.query(
+    await client.query(
       `
         update public.users
         set password_hash = $2,
@@ -91,13 +94,15 @@ async function resetPassword(token: string, password: string) {
       `,
       [email, passwordHash],
     );
-    await pool.query('delete from public.verification_tokens where token = $1', [
+    await client.query('delete from public.verification_tokens where token = $1', [
       tokenDigest,
     ]);
-    await pool.query('commit');
+    await client.query('commit');
   } catch (error) {
-    await pool.query('rollback');
+    await client.query('rollback');
     throw error;
+  } finally {
+    client.release();
   }
 
   return NextResponse.json({ ok: true });
@@ -135,8 +140,8 @@ async function sendResetEmail(req: NextRequest, email: string) {
 
   if (!process.env.RESEND_API_KEY || !process.env.EMAIL_FROM) return;
 
-  const url = `${appOrigin(req)}/?reset_token=${rawToken}`;
-  await fetch('https://api.resend.com/emails', {
+  const url = `${appOrigin(req)}/login?reset_token=${rawToken}`;
+  const response = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
@@ -152,6 +157,7 @@ async function sendResetEmail(req: NextRequest, email: string) {
       `,
     }),
   });
+  if (!response.ok) throw new Error('EMAIL_DELIVERY_FAILED');
 }
 
 export async function POST(req: NextRequest) {
@@ -173,6 +179,9 @@ export async function POST(req: NextRequest) {
     }
 
     const payload = requestSchema.parse(body);
+    if (!process.env.RESEND_API_KEY || !process.env.EMAIL_FROM) {
+      return NextResponse.json({ ok: false, error: 'EMAIL_UNAVAILABLE' }, { status: 503 });
+    }
     const email = payload.email.toLowerCase();
     const rateLimitKey = `password-reset:${ip}:${digest(email)}`;
 

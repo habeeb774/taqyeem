@@ -5,6 +5,7 @@ export const dynamic = 'force-dynamic';
 
 const styles = `
   *, *:before, *:after { box-sizing: border-box; }
+  [hidden] { display: none !important; }
   body {
     margin: 0;
     min-height: 100vh;
@@ -80,6 +81,27 @@ const styles = `
 `;
 
 const script = `
+  const params = new URLSearchParams(location.search);
+  const resetToken = params.get('reset_token');
+  const recovery = params.get('reset') === '1' || Boolean(resetToken);
+  if (recovery) {
+    document.querySelector('.title').textContent = resetToken ? 'تعيين كلمة مرور جديدة' : 'استعادة كلمة المرور';
+    document.querySelector('[for="password"]').hidden = !resetToken;
+    document.getElementById('password').hidden = !resetToken;
+    document.getElementById('password').required = Boolean(resetToken);
+    document.getElementById('password').minLength = 8;
+    document.getElementById('password').autocomplete = 'new-password';
+    document.querySelector('[for="email"]').hidden = Boolean(resetToken);
+    document.getElementById('email').hidden = Boolean(resetToken);
+    document.getElementById('email').required = !resetToken;
+    document.querySelector('.remember').hidden = true;
+    document.querySelector('.hint').textContent = resetToken
+      ? 'اختر كلمة مرور من 8 أحرف على الأقل'
+      : 'أدخل بريد حسابك لتصلك رسالة استعادة كلمة المرور';
+    document.getElementById('submit').textContent = resetToken ? 'حفظ كلمة المرور' : 'إرسال رابط الاستعادة';
+    document.querySelector('.forgot').textContent = 'العودة لتسجيل الدخول';
+    document.querySelector('.forgot').onclick = () => location.assign('/login');
+  }
   document.getElementById('login').addEventListener('submit', async (event) => {
     event.preventDefault();
 
@@ -87,14 +109,16 @@ const script = `
     const error = document.getElementById('error');
     error.textContent = '';
     button.disabled = true;
-    button.textContent = 'جارٍ الدخول...';
+    button.textContent = recovery ? 'جارٍ تنفيذ الطلب...' : 'جارٍ الدخول...';
 
     try {
-      const response = await fetch('/api/app/auth/login', {
+      const response = await fetch(recovery ? '/api/app/auth/password-reset' : '/api/app/auth/login', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         credentials: 'same-origin',
-        body: JSON.stringify({
+        body: JSON.stringify(recovery ? (resetToken ? {
+          action: 'reset', token: resetToken, password: document.getElementById('password').value,
+        } : { email: document.getElementById('email').value.trim() }) : {
           email: document.getElementById('email').value.trim(),
           password: document.getElementById('password').value,
           remember: document.getElementById('remember').checked,
@@ -106,13 +130,26 @@ const script = `
         throw new Error(data.error || 'INVALID_CREDENTIALS');
       }
 
+      if (recovery) {
+        error.style.color = '#169b62';
+        error.textContent = resetToken
+          ? 'تم تغيير كلمة المرور. يمكنك تسجيل الدخول الآن.'
+          : 'إذا كان البريد مرتبطًا بحساب، ستصلك رسالة الاستعادة. راجع البريد غير المرغوب فيه أيضًا.';
+        document.getElementById('password').value = '';
+        button.textContent = resetToken ? 'تم حفظ كلمة المرور' : 'تم إرسال الطلب';
+        return;
+      }
       location.replace('/');
     } catch (loginError) {
       error.textContent = loginError.message === 'RATE_LIMITED'
         ? 'محاولات كثيرة، حاول بعد 15 دقيقة'
-        : 'البريد الإلكتروني أو كلمة المرور غير صحيحة';
+        : recovery ? (loginError.message === 'RESET_TOKEN_INVALID'
+          ? 'رابط الاستعادة منتهي أو مستخدم. اطلب رابطًا جديدًا.'
+          : loginError.message === 'EMAIL_UNAVAILABLE'
+            ? 'خدمة البريد غير متاحة حاليًا. تواصل مع مدير النظام لاستعادة حسابك.'
+            : 'تعذر تنفيذ الطلب. حاول مرة أخرى.') : 'البريد الإلكتروني أو كلمة المرور غير صحيحة';
       button.disabled = false;
-      button.textContent = 'دخول';
+      button.textContent = recovery ? (resetToken ? 'حفظ كلمة المرور' : 'إرسال رابط الاستعادة') : 'دخول';
     }
   });
 `;
