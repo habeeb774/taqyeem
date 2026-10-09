@@ -41,6 +41,14 @@ describe('design canvas text layout', () => {
     ]);
   });
 
+  it('uses the entered value of a dynamic layer even when its content has no token', () => {
+    const ctx = context();
+    drawDesignField(ctx as unknown as CanvasRenderingContext2D, {
+      ...field, content: 'نص القالب', is_dynamic: true, field_key: 'name',
+    }, { name: 'النص المطلوب' }, 1000);
+    expect(ctx.fillText).toHaveBeenCalledWith('النص المطلوب', 200, 0, 200);
+  });
+
   it('fits long text before drawing and clips it to the same field box', () => {
     const ctx = context();
     ctx.measureText.mockImplementation(() => ({ width: Number(ctx.font.split(' ')[1].replace('px', '')) * 8 }));

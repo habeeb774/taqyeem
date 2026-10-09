@@ -137,12 +137,13 @@ export default function UsePage() {
         const initial: Record<string, string> = {};
 
         nextFields.forEach((field: Field) => {
+          if (!field.is_visible) return;
           tokens(field.content).forEach((key) => {
             if (initial[key] == null) initial[key] = field.default_value || '';
           });
 
           if (field.is_dynamic && initial[field.field_key] == null) {
-            initial[field.field_key] = field.default_value || '';
+            initial[field.field_key] = field.default_value ?? (tokens(field.content).length ? '' : field.content);
           }
         });
 
@@ -175,6 +176,7 @@ export default function UsePage() {
     const map = new Map<string, Field>();
 
     fields.forEach((field) => {
+      if (!field.is_visible) return;
       tokens(field.content).forEach((key) => {
         if (!map.has(key)) map.set(key, field);
       });

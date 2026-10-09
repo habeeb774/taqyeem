@@ -98,7 +98,7 @@ describe('design use and preview loading', () => {
       if (url === '/api/design-data') return { employees: [] };
       return {
         template: { name: 'قالب المعاينة', width: 800, height: 400, background_image_url: '/background.png' },
-        fields: [{ content: '{{name}}', field_key: 'name', field_label: 'الاسم', field_type: 'text', is_dynamic: true }],
+        fields: [{ content: '{{name}}', field_key: 'name', field_label: 'الاسم', field_type: 'text', is_dynamic: true, is_visible: true }],
       };
     });
     render(<UsePage />);
@@ -113,5 +113,19 @@ describe('design use and preview loading', () => {
     expect(mocks.canvas.mock.calls[1][4]).toEqual({ name: 'النص الجديد' });
     expect(fetch).toHaveBeenCalledTimes(1);
     vi.unstubAllGlobals();
+  });
+
+  it('does not ask users to fill invisible or required hidden layers', async () => {
+    mocks.api.mockImplementation(async (url: string) => {
+      if (url === '/api/app/auth/me') return { permissions: ['design_templates.view', 'design_templates.use'] };
+      if (url === '/api/design-fonts') return { fonts: [] };
+      if (url === '/api/design-data') return { employees: [] };
+      return { ...template('قالب ثابت'), fields: [
+        { content: '{{hidden}}', field_key: 'hidden', field_label: 'طبقة مخفية', is_dynamic: true, is_visible: false, is_required: true },
+      ] };
+    });
+    render(<UsePage />);
+    expect(await screen.findByText('هذا القالب لا يحتوي حقولًا متغيرة. يمكنك تصديره مباشرة.')).toBeInTheDocument();
+    expect(screen.queryByLabelText('طبقة مخفية')).not.toBeInTheDocument();
   });
 });

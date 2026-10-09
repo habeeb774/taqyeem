@@ -1,5 +1,7 @@
 export type DesignTextField = {
   content: string;
+  is_dynamic?: boolean;
+  field_key?: string;
   x: number;
   y: number;
   width: number;
@@ -24,6 +26,13 @@ export type DesignTextField = {
 
 export function replaceDesignText(content: string, values: Record<string, string>) {
   return content.replace(/{{\s*([a-zA-Z][a-zA-Z0-9_.-]*)\s*}}/g, (_, key) => values[key] ?? `{{${key}}}`);
+}
+
+function fieldText(field: DesignTextField, values: Record<string, string>) {
+  if (field.is_dynamic && field.field_key && !/{{\s*[a-zA-Z][a-zA-Z0-9_.-]*\s*}}/.test(field.content)) {
+    return values[field.field_key] ?? field.content;
+  }
+  return replaceDesignText(field.content, values);
 }
 
 export async function loadDesignFonts(
@@ -60,7 +69,7 @@ export async function loadDesignFonts(
   }));
   await document.fonts.ready;
   await Promise.all(fields.filter(field => field.is_visible).map(field =>
-    document.fonts.load(`${field.font_weight} ${field.font_size}px "${field.font_family}"`, replaceDesignText(field.content, values)),
+    document.fonts.load(`${field.font_weight} ${field.font_size}px "${field.font_family}"`, fieldText(field, values)),
   ));
 }
 
@@ -87,7 +96,7 @@ export function drawDesignField(
   values: Record<string, string>,
   canvasWidth: number,
 ) {
-  let text = replaceDesignText(field.content, values);
+  let text = fieldText(field, values);
   if (field.max_length) text = text.slice(0, field.max_length);
   ctx.save();
   ctx.globalAlpha = field.opacity;
