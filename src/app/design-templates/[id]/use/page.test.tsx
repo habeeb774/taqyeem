@@ -126,6 +126,8 @@ describe('design use and preview loading', () => {
     });
     render(<UsePage />);
     expect(await screen.findByText('هذا القالب لا يحتوي حقولًا متغيرة. يمكنك تصديره مباشرة.')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'تحميل التصميم' })).toBeInTheDocument();
+    expect(screen.queryByText('املأ الحقول وشاهد النتيجة مباشرة، ثم حمّل التصميم.')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('طبقة مخفية')).not.toBeInTheDocument();
   });
 });

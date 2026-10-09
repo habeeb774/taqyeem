@@ -327,7 +327,9 @@ export default function UsePage() {
             <h1>
               {previewOnly ? 'معاينة القالب' : 'استخدام القالب'}: {template.name}
             </h1>
-            <p>{previewOnly ? 'شاهد شكل القالب قبل استخدامه.' : 'املأ الحقول وشاهد النتيجة مباشرة، ثم حمّل التصميم.'}</p>
+            <p>{previewOnly ? 'شاهد شكل القالب قبل استخدامه.' : variables.length
+              ? 'املأ الحقول وشاهد النتيجة مباشرة، ثم حمّل التصميم.'
+              : 'هذا القالب جاهز للتحميل. اختر نوع الملف ثم حمّل التصميم.'}</p>
           </div>
         </div>
 
@@ -340,7 +342,7 @@ export default function UsePage() {
                 {permissions.includes('design_templates.use') && <a className="ds-btn" href={`/design-templates/${id}/use`}>استخدام القالب</a>}
               </>
             ) : <>
-            <h2>البيانات المتغيرة</h2>
+            <h2>{variables.length ? 'بيانات التصميم' : 'تحميل التصميم'}</h2>
             <fieldset disabled={saving} style={{ border: 0, margin: 0, padding: 0, minWidth: 0 }}>
             {variables.length ? renderVariableFields() : (
               <p className="du-note">هذا القالب لا يحتوي حقولًا متغيرة. يمكنك تصديره مباشرة.</p>
