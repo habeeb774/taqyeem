@@ -2578,20 +2578,24 @@ async function archiveDoc(docNo, v, status){
   var f=allForms.find(function(x){return x.id===activeId;});
   var arch=lsGet(archiveKey(),[]);
   var emp=(v.emp_name&&v.emp_name.value)||(v.pay_to&&v.pay_to.value)||'—';
-  arch.unshift({
+  var archivedRecord={
     docNo:docNo, formId:activeId, formName:(docTitle||(f&&f.name)||''),
     dept:(docDept||(currentDept?currentDept.name:'')), emp:emp,
     editor:(currentUser?currentUser.name:''),
     ts:Date.now(), state:captureState()
-  });
-  if(arch.length>500) arch=arch.slice(0,500);
-  lsSet(archiveKey(),arch);
+  };
   var empRec=selectedFormEmployee||EMPLOYEES.find(function(x){return x.name===emp||String(x.id)===String((v.emp_no&&v.emp_no.value)||'');});
   var r=await fetch('/api/app/forms',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({form_type:String(activeId||'custom'),document_no:String(docNo),employee_id:empRec&&empRec.employee_id||null,status:status||'issued',payload:{state:captureState(),formId:activeId,formName:(docTitle||(f&&f.name)||''),dept:(docDept||(currentDept?currentDept.name:'')),employee:emp,editor:(currentUser?currentUser.name:'')}})}),j=await r.json();
   if(!r.ok||!j.ok)throw new Error(j.error||'SAVE_FAILED');
+  arch=arch.filter(function(rec){return rec.docNo!==docNo;});
+  arch.unshift(archivedRecord);
+  if(arch.length>500) arch=arch.slice(0,500);
+  lsSet(archiveKey(),arch);
   return j.document;
 }
+var archiveLoadVersion=0;
 async function loadRemoteArchive(){
+  var version=++archiveLoadVersion;
   try{
     if($('sec-archive')&&$('sec-archive').classList.contains('active')){$('archList').innerHTML='<div class="arch-empty">جارٍ تحميل المستندات...</div>';}
     var q=($('archSrch')?$('archSrch').value:'').trim();
@@ -2599,14 +2603,23 @@ async function loadRemoteArchive(){
       fetch('/api/app/forms?type=__draft__&limit=100',{credentials:'same-origin',cache:'no-store'}),
       fetch('/api/app/forms?archive=1&page='+archivePage+'&limit=25&q='+encodeURIComponent(q),{credentials:'same-origin',cache:'no-store'})
     ]);
-    if(!responses[0].ok||!responses[1].ok)return;
-    var draftJson=await responses[0].json(),archiveJson=await responses[1].json();if(!draftJson.ok||!archiveJson.ok)return;
+    if(!responses[0].ok||!responses[1].ok)throw new Error('ARCHIVE_LOAD_FAILED');
+    var draftJson=await responses[0].json(),archiveJson=await responses[1].json();
+    if(version!==archiveLoadVersion)return;
+    if(!draftJson.ok||!archiveJson.ok)throw new Error('ARCHIVE_LOAD_FAILED');
     var draftDocs=draftJson.documents||[],drafts={};draftDocs.filter(function(d){return d.form_type==='__draft__'&&d.status==='draft';}).forEach(function(d){var p=d.payload||{};if(p.formId&&p.draft&&!Object.prototype.hasOwnProperty.call(drafts,p.formId))drafts[p.formId]=p.draft;});formMemory[draftKey()]=drafts;
     archiveTotal=Number(archiveJson.total||0);archiveTotalPages=Math.max(1,Number(archiveJson.totalPages||1));
     if(archivePage>archiveTotalPages){archivePage=archiveTotalPages;return loadRemoteArchive();}
     var docs=(archiveJson.documents||[]).map(function(d){var p=d.payload||{};return {id:d.id,status:d.status,docNo:d.document_no,formId:p.formId||d.form_type,formName:p.formName||d.form_type,dept:p.dept||d.department_name||'',emp:p.employee||d.employee_name||'—',editor:p.editor||d.creator_name||'',ts:new Date(d.created_at||d.updated_at||Date.now()).getTime(),state:p.state||{}};});
     lsSet(archiveKey(),docs);if(typeof renderArchive==='function')renderArchive();
-  }catch(e){}
+  }catch(e){
+    if(version!==archiveLoadVersion)return;
+    var box=$('archList');
+    if(box){
+      box.innerHTML='<div class="arch-empty">تعذر تحميل المستندات. <button type="button" class="btn">إعادة المحاولة</button></div>';
+      box.querySelector('button').onclick=loadRemoteArchive;
+    }
+  }
 }
 function openArchivedDoc(docNo){
   var arch=lsGet(archiveKey(),[]);
