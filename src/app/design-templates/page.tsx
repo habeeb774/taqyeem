@@ -62,6 +62,7 @@ export default function DesignsPage() {
 
   const can = (permission: string) => permissions.includes(permission);
   const pages = Math.max(1, Math.ceil(total / 12));
+  const hasFilters = Boolean(q || category || (!browseForUse && (createdBy || status)));
 
   async function load() {
     const version = ++loadVersion.current;
@@ -77,8 +78,8 @@ export default function DesignsPage() {
         category,
         status: browseForUse ? 'published' : status,
         ready: browseForUse ? '1' : '0',
-        created_by: createdBy,
-        sort,
+        created_by: browseForUse ? '' : createdBy,
+        sort: browseForUse ? 'newest' : sort,
       });
 
       const [list, cats, me] = await Promise.all([
@@ -242,7 +243,7 @@ export default function DesignsPage() {
           </div>
         </div>
 
-        <section className="ds-filters">
+        <section className={`ds-filters${browseForUse ? ' ds-filters--use' : ''}`}>
           <Input
             placeholder="ابحث باسم القالب..."
             value={q}
@@ -269,36 +270,35 @@ export default function DesignsPage() {
             ))}
           </Select>
 
-          <Select
-            value={browseForUse ? 'published' : status}
-            disabled={browseForUse}
+          {!browseForUse && <Select
+            value={status}
             onChange={(event) => {
               setStatus(event.target.value);
               setPage(1);
             }}
             aria-label="فلترة بالحالة"
           >
-            {!browseForUse && <option value="">كل الحالات</option>}
-            {!browseForUse && <option value="draft">مسودة</option>}
+            <option value="">كل الحالات</option>
+            <option value="draft">مسودة</option>
             <option value="published">منشور</option>
-            {!browseForUse && <option value="archived">مؤرشف</option>}
-          </Select>
+            <option value="archived">مؤرشف</option>
+          </Select>}
 
-          <Select value={createdBy} onChange={(event) => { setCreatedBy(event.target.value); setPage(1); }} aria-label="فلترة بالمنشئ">
+          {!browseForUse && <Select value={createdBy} onChange={(event) => { setCreatedBy(event.target.value); setPage(1); }} aria-label="فلترة بالمنشئ">
             <option value="">كل المنشئين</option>
             {creators.map((item) => (
               <option key={item.id} value={item.id}>
                 {item.name}
               </option>
             ))}
-          </Select>
+          </Select>}
 
-          <Select value={sort} onChange={(event) => { setSort(event.target.value); setPage(1); }} aria-label="ترتيب النتائج">
+          {!browseForUse && <Select value={sort} onChange={(event) => { setSort(event.target.value); setPage(1); }} aria-label="ترتيب النتائج">
             <option value="newest">الأحدث</option>
             <option value="oldest">الأقدم</option>
             <option value="name">الاسم</option>
             <option value="usage">الأكثر استخدامًا</option>
-          </Select>
+          </Select>}
 
           <Button variant="ghost" size="sm" onClick={() => setView(view === 'grid' ? 'list' : 'grid')}>
             {view === 'grid' ? 'عرض قائمة' : 'عرض بطاقات'}
@@ -368,10 +368,10 @@ export default function DesignsPage() {
           </div>
         ) : (
           <EmptyState>
-            <p>{q || category || createdBy || (!browseForUse && status) ? 'لا توجد قوالب تطابق البحث والتصفية.'
+            <p>{hasFilters ? 'لا توجد قوالب تطابق البحث والتصفية.'
               : browseForUse ? 'لا توجد قوالب جاهزة للاستخدام حاليًا. يلزم نشر قالب يحتوي على خلفية بواسطة مسؤول القوالب.'
               : can('design_templates.create') ? 'لا توجد قوالب بعد. يمكنك إضافة قالب تصميم جديد.' : 'لا توجد قوالب متاحة لك حاليًا.'}</p>
-            {(q || category || createdBy || (!browseForUse && status)) && <Button variant="ghost" onClick={() => {
+            {hasFilters && <Button variant="ghost" onClick={() => {
               setQ(''); setCategory(''); setCreatedBy(''); setStatus(''); setPage(1);
             }}>عرض جميع القوالب</Button>}
           </EmptyState>

@@ -43,7 +43,10 @@ describe('task focused design catalog', () => {
     const query = new URL(mocks.api.mock.calls.find(([url]) => url.startsWith('/api/design-templates?'))![0], 'https://example.test');
     expect(query.searchParams.get('ready')).toBe('1');
     expect(query.searchParams.get('status')).toBe('published');
-    expect(screen.getByLabelText('فلترة بالحالة')).toBeDisabled();
+    expect(screen.queryByLabelText('فلترة بالحالة')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('فلترة بالمنشئ')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('ترتيب النتائج')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('فلترة بالتصنيف')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'استخدام القالب' })).toHaveAttribute('href', '/design-templates/template/use');
     expect(screen.queryByRole('button', { name: '+ إضافة قالب تصميم' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'حذف' })).not.toBeInTheDocument();
@@ -58,6 +61,9 @@ describe('task focused design catalog', () => {
     expect(await screen.findByText('لا توجد قوالب متاحة لك حاليًا.')).toBeInTheDocument();
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
     expect(screen.queryByText(/إضافة قالب تصميم جديد/)).not.toBeInTheDocument();
+    expect(screen.getByLabelText('فلترة بالحالة')).toBeEnabled();
+    expect(screen.getByLabelText('فلترة بالمنشئ')).toBeInTheDocument();
+    expect(screen.getByLabelText('ترتيب النتائج')).toBeInTheDocument();
   });
 
   it('keeps the latest search results when an older search finishes later', async () => {
