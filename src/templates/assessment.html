@@ -1312,7 +1312,24 @@ function renderEvalStep(){
     RATINGS.forEach(r=>{
       const b=document.createElement('button');b.className='eval-opt t-'+scoreTone(r.val)+(cur===r.val?' sel':'');
       b.innerHTML=`<span class="eval-opt-label">${r.label}</span><span class="eval-opt-val">${r.val}</span>`;
-      b.onclick=()=>{_eAns[key]=r.val;document.querySelectorAll('.eval-opt').forEach(x=>x.classList.remove('sel'));b.classList.add('sel');if(window.taqAutosaveAnswer)window.taqAutosaveAnswer(key,r.val);setTimeout(()=>{if(_eStep<_eCrit.length){_eStep++;renderEvalStep();}},320);};
+      b.onclick=async()=>{
+        if(b.disabled)return;
+        const step=_eStep;
+        _eAns[key]=r.val;
+        document.querySelectorAll('.eval-opt').forEach(x=>{x.classList.remove('sel');x.disabled=true;});
+        b.classList.add('sel');
+        $('evalNav').querySelectorAll('button').forEach(x=>{x.disabled=true;});
+        const next=$('evalNav').querySelector('.eval-next');
+        if(next){next.disabled=true;next.textContent='جارٍ حفظ الإجابة...';}
+        const saved=window.taqAutosaveAnswer?await window.taqAutosaveAnswer(key,r.val):true;
+        if(_eStep!==step||_eCrit[step].key!==key)return;
+        if(saved){_eStep++;renderEvalStep();}
+        else{
+          document.querySelectorAll('.eval-opt').forEach(x=>{x.disabled=false;});
+          $('evalNav').querySelectorAll('.eval-prev').forEach(x=>{x.disabled=false;});
+          if(next){next.disabled=true;next.textContent='اختر الدرجة لإعادة الحفظ';}
+        }
+      };
       opt.appendChild(b);
     });
   }
@@ -1873,7 +1890,7 @@ function atApply(){
 function atStep(k,d){ _at[k]=Math.max(0,(parseInt(_at[k])||0)+d); var el=$('at_'+k); if(el)el.value=_at[k]; atApply(); }
 function atReset(){ for(var k in DEDUCT){_at[k]=0; var el=$('at_'+k); if(el)el.value=0;} atApply(); }
 </script>
-<script src="/full-services.js?v=20261009-cycle-loading"></script>
+<script src="/full-services.js?v=20261009-answer-save"></script>
 </body>
 </html>
 

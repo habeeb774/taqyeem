@@ -293,7 +293,11 @@
   var _autosaveNotesTimer=null;
   window.taqAutosaveAnswer=async function(criterionId,score){
     var emp=empById(_eId),eid=emp&&A.evaluationIds[emp.id];if(!eid||_eMode!=='criteria')return;
-    try{var r=await api('/api/app/evaluations',{method:'POST',body:{action:'autosave',evaluation_id:eid,answer:{criterion_id:String(criterionId),score:Number(score),comment:''}}});if(emp&&r.score!=null){evals[emp.id]=Object.assign(evals[emp.id]||{},{_score:Number(r.score)});}}catch(e){toast('تعذر الحفظ التلقائي: '+humanError(e.message));}
+    try{
+      var r=await api('/api/app/evaluations',{method:'POST',body:{action:'autosave',evaluation_id:eid,answer:{criterion_id:String(criterionId),score:Number(score),comment:''}}});
+      if(emp&&r.score!=null){evals[emp.id]=Object.assign(evals[emp.id]||{},{_score:Number(r.score)});}
+      return true;
+    }catch(e){toast('لم تُحفظ الإجابة. اختر الدرجة مجددًا لإعادة المحاولة: '+humanError(e.message));return false;}
   };
   window.taqAutosaveNotes=function(notes){
     clearTimeout(_autosaveNotesTimer);_autosaveNotesTimer=setTimeout(async function(){var emp=empById(_eId),eid=emp&&A.evaluationIds[emp.id];if(!eid||_eMode!=='criteria')return;try{await api('/api/app/evaluations',{method:'POST',body:{action:'autosave',evaluation_id:eid,notes:String(notes||'')}});}catch(e){toast('تعذر حفظ الملاحظات تلقائياً');}},500);
