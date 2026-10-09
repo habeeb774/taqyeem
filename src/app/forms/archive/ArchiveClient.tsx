@@ -144,7 +144,7 @@ export function ArchiveClient({ canCancel, canArchive, canDelete }: { canCancel:
                   <TableCell>{formatTimestamp(doc.created_at || doc.updated_at)}</TableCell>
                   <TableCell>
                     <div className="forms-page__actions" style={{ justifyContent: 'flex-start' }}>
-                      <a className="dst-btn dst-btn--ghost dst-btn--sm" href={`/forms?open=${encodeURIComponent(doc.document_no)}`}>
+                      <a className="dst-btn dst-btn--ghost dst-btn--sm" href={`/forms/editor?open=${encodeURIComponent(doc.document_no)}`}>
                         فتح
                       </a>
                       {canCancel && CANCELLABLE.includes(doc.status) && (

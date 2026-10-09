@@ -1245,7 +1245,7 @@ function cardHtml(f){
 }
 
 // These sections moved to React pages; the legacy nav pills now just navigate there.
-var REACT_SECTIONS={archive:'/forms/archive',approvals:'/forms/approvals',workflows:'/forms/workflows'};
+var REACT_SECTIONS={forms:'/forms',archive:'/forms/archive',approvals:'/forms/approvals',workflows:'/forms/workflows'};
 function showSection(id){
   if(REACT_SECTIONS[id]){ location.assign(REACT_SECTIONS[id]); return; }
   document.querySelectorAll('.section').forEach(function(x){ x.classList.remove('active'); });
@@ -1258,6 +1258,13 @@ function showSection(id){
 function openRequestedFormsTask(){
   var task=new URLSearchParams(location.search).get('task');
   if(task==='approvals'&&(currentPermissions.indexOf('forms.approve')>=0||currentPermissions.indexOf('forms.reject')>=0))showSection('approvals');
+}
+// /forms links here with ?form=<template_key> to open a blank form in the editor.
+function openRequestedForm(){
+  var id=new URLSearchParams(location.search).get('form');
+  if(!id)return;
+  if(!allForms.some(function(f){return f.id===id;})){ toast('النموذج غير متاح'); setTimeout(function(){location.replace('/forms');},1200); return; }
+  openForm(id);
 }
 // /forms/archive links here with ?open=<document_no> to reopen a document in the editor.
 async function openRequestedDocument(){
@@ -1573,7 +1580,8 @@ async function closeForm(){
   if(documentActionBusy){toast('انتظر انتهاء إصدار المستند أو إرساله');return;}
   clearTimeout(_saveTimer);
   if(activeId&&draftDirty&&await saveDraft()===false)return;
-  $('pgForm').style.display='none';$('app').style.display='flex';activeId=null;
+  activeId=null;
+  location.assign('/forms');
 }
 /* the fill view IS the A4 document now; kept so old call sites stay harmless */
 function formTab(t){ $('formFill').style.display='block'; }
@@ -2778,6 +2786,9 @@ $('empGrid').textContent='جارٍ تحميل النماذج...';
 /* Load the shared security context before deriving per-user draft/archive keys.
    The server remains the authority; this is only UI state and never grants access. */
 (async function initFormsSession(){
+  // This page is now only the document editor; the catalogue lives at /forms.
+  var editorParams=new URLSearchParams(location.search);
+  if(!editorParams.get('form')&&!editorParams.get('open')&&!editorParams.get('task')){ location.replace('/forms'); return; }
   try{
     var mr=await fetch('/api/app/auth/me',{credentials:'same-origin',cache:'no-store'});
     if(!mr.ok){ location.replace('/login'); return; }
@@ -2802,6 +2813,7 @@ $('empGrid').textContent='جارٍ تحميل النماذج...';
     loadEmployeesFromNeon().catch(function(){});
     loadFormLookups().catch(function(){});
     openRequestedFormsTask();
+    openRequestedForm();
     await openRequestedDocument();
     await loadRemoteArchive();
   }catch(e){

@@ -63,6 +63,7 @@ export const config = {
   matcher: [
     '/api/:path*',
     '/forms',
+    '/forms/:path*',
     '/forms.html',
     '/assessment',
     '/design-templates',
