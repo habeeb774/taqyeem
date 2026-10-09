@@ -37,6 +37,10 @@
   function setting(key,def){var v=A.data&&A.data.settings?A.data.settings[key]:undefined;return v===undefined||v===null?def:v;}
   function humanError(code){
     var m={
+      REQUEST_FAILED:'تعذر تنفيذ الطلب. تحقق من البيانات وحاول مرة أخرى',
+      RECORD_ALREADY_EXISTS:'هذه البيانات مسجلة مسبقًا. اختر السجل الموجود أو استخدم رمزًا مختلفًا',
+      RELATED_RECORD_CONFLICT:'تعذر تنفيذ الإجراء لأن البيانات مرتبطة بسجل آخر. حدّث الصفحة وتحقق من الاختيارات',
+      organization_scope_required:'هذا الإجراء متاح للمسؤول عن المنشأة فقط',
       INVALID_CREDENTIALS:'البريد الإلكتروني أو كلمة المرور غير صحيحة',RATE_LIMITED:'محاولات كثيرة، حاول بعد 15 دقيقة',
       ACCOUNT_NOT_READY:'الحساب موجود لكنه لم يُربط بالمنشأة والصلاحيات بعد',PROFILE_NOT_READY:'الحساب غير مهيأ بالكامل',
       UNAUTHENTICATED:'انتهت الجلسة، سجّل الدخول مرة أخرى',FORBIDDEN:'ليست لديك صلاحية لتنفيذ هذا الإجراء',permission_denied:'ليست لديك صلاحية لتنفيذ هذا الإجراء',

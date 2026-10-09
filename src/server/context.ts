@@ -40,8 +40,17 @@ export function jsonError(error: unknown) {
     || (/UNAUTHENTICATED/.test(String(err?.message)) ? 401 : /FORBIDDEN/.test(String(err?.message)) ? 403 : 400);
 
   if (err?.name === 'ZodError') return { status: 400, error: 'تحقق من الحقول المدخلة' };
+  if (err?.code === '23505') return { status: 409, error: 'RECORD_ALREADY_EXISTS' };
+  if (err?.code === '23503') return { status: 409, error: 'RELATED_RECORD_CONFLICT' };
   const message = String(err?.message || '');
   const known = new Set([
+    'assignment_not_found',
+    'evaluation_incomplete',
+    'required_comment_missing',
+    'evaluation_not_editable',
+    'invalid_transition',
+    'cycle_not_found',
+    'organization_scope_required',
     'UNAUTHENTICATED',
     'FORBIDDEN',
     'PROFILE_NOT_READY',
