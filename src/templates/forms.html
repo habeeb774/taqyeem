@@ -1244,7 +1244,10 @@ function cardHtml(f){
   return '<div class="emp-card" onclick="openForm(\''+f.id+'\')"><div class="ec-top"><div class="ec-ico"><svg viewBox="0 0 24 24">'+(ICONS[f.icon]||ICONS.custom)+'</svg></div><div class="ec-name">'+f.name+'</div></div><span class="ec-cat">'+f.cat+'</span></div>';
 }
 
+// These sections moved to React pages; the legacy nav pills now just navigate there.
+var REACT_SECTIONS={archive:'/forms/archive',approvals:'/forms/approvals',workflows:'/forms/workflows'};
 function showSection(id){
+  if(REACT_SECTIONS[id]){ location.assign(REACT_SECTIONS[id]); return; }
   document.querySelectorAll('.section').forEach(function(x){ x.classList.remove('active'); });
   var el=$('sec-'+id); if(el) el.classList.add('active');
   document.querySelectorAll('.nav-pill').forEach(function(b){ b.classList.toggle('on', b.dataset.sec===id); });
@@ -1255,6 +1258,19 @@ function showSection(id){
 function openRequestedFormsTask(){
   var task=new URLSearchParams(location.search).get('task');
   if(task==='approvals'&&(currentPermissions.indexOf('forms.approve')>=0||currentPermissions.indexOf('forms.reject')>=0))showSection('approvals');
+}
+// /forms/archive links here with ?open=<document_no> to reopen a document in the editor.
+async function openRequestedDocument(){
+  var docNo=new URLSearchParams(location.search).get('open');
+  if(!docNo)return;
+  try{
+    var r=await fetch('/api/app/forms?archive=1&limit=10&q='+encodeURIComponent(docNo),{credentials:'same-origin',cache:'no-store'}),j=await r.json();
+    var d=(j.documents||[]).find(function(x){return x.document_no===docNo;});
+    if(!d){toast('تعذر العثور على المستند '+docNo);return;}
+    var p=d.payload||{};
+    openForm(p.formId||d.form_type);
+    setTimeout(function(){ applyState(p.state||{}); currentDocNo=d.document_no; toast('تم فتح المستند '+docNo); },50);
+  }catch(e){toast('تعذر فتح المستند');}
 }
 var formCatalogState='loading';
 function renderForms(){
@@ -2786,6 +2802,7 @@ $('empGrid').textContent='جارٍ تحميل النماذج...';
     loadEmployeesFromNeon().catch(function(){});
     loadFormLookups().catch(function(){});
     openRequestedFormsTask();
+    await openRequestedDocument();
     await loadRemoteArchive();
   }catch(e){
     $('empGrid').textContent='تعذر تحميل النماذج. يرجى إعادة المحاولة.';

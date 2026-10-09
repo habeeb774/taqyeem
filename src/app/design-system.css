@@ -268,3 +268,43 @@
   font-weight: 400;
   font-size: var(--dst-font-size-xs);
 }
+
+/* React forms pages (/forms/archive, /forms/approvals, /forms/workflows) */
+.forms-page {
+  min-height: 100vh;
+  background: var(--dst-color-bg-page);
+  color: var(--dst-color-text);
+  font-family: var(--app-font);
+}
+.forms-page__body {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: var(--dst-space-6);
+  display: grid;
+  gap: var(--dst-space-4);
+}
+.forms-page__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--dst-space-3);
+  flex-wrap: wrap;
+}
+.forms-page__actions {
+  display: flex;
+  gap: var(--dst-space-2);
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+.forms-toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #0d0d0d;
+  color: #fff;
+  padding: 10px 18px;
+  border-radius: 10px;
+  font-size: 13px;
+  z-index: 1000;
+}

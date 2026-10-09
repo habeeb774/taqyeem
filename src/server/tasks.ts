@@ -7,7 +7,7 @@ export function availableTasks(permissions: string[], hasEmployee = false) {
       && { label: 'راجع التقييمات', href: '/assessment?task=review' },
     can('forms.view') && can('forms.create') && { label: 'أنشئ مستندًا', href: '/forms' },
     can('forms.view') && ['forms.approve', 'forms.reject'].some(can)
-      && { label: 'راجع طلبات الموافقة', href: '/forms?task=approvals' },
+      && { label: 'راجع طلبات الموافقة', href: '/forms/approvals' },
     ['design_templates.view', 'design_templates.use', 'design_templates.export'].every(can)
       && { label: 'أنشئ تصميمًا', href: '/design-templates?task=create-design' },
     can('evaluations.view') && can('reports.view') && { label: 'اطّلع على التقارير', href: '/assessment?task=reports' },
