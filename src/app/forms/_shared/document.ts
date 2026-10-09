@@ -9,6 +9,9 @@ export type FieldDef = {
   type?: string;
   wide?: boolean;
   req?: boolean;
+  options?: string[];
+  def?: string;
+  employee_binding?: string;
 };
 
 export type SectionDef = {

@@ -105,7 +105,7 @@ export function ViewClient({ documentNo, canPrint }: { documentNo: string; canPr
         </div>
         <div className="forms-page__actions">
           <a className="dst-btn dst-btn--ghost dst-btn--md" href="/forms/archive">رجوع</a>
-          <a className="dst-btn dst-btn--ghost dst-btn--md" href={`/forms/editor?open=${encodeURIComponent(doc.document_no)}`}>فتح في المحرّر</a>
+          <a className="dst-btn dst-btn--ghost dst-btn--md" href={`/forms/edit?doc=${encodeURIComponent(doc.document_no)}`}>فتح في المحرّر</a>
           {canPrint && (
             <Button onClick={print} disabled={printing}>{printing ? 'جارٍ التحضير...' : 'طباعة / PDF'}</Button>
           )}

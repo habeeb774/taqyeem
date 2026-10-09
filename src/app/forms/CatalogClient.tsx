@@ -121,7 +121,7 @@ export function CatalogClient({ canManageTemplates }: { canManageTemplates: bool
           {visible.map((t) => {
             const icon = FORM_ICONS[t.icon || t.definition?.icon || 'custom'] || FORM_ICONS.custom;
             return (
-              <a key={t.template_key} className="forms-card" href={`/forms/editor?form=${encodeURIComponent(t.template_key)}`}>
+              <a key={t.template_key} className="forms-card" href={`/forms/edit?form=${encodeURIComponent(t.template_key)}`}>
                 <span className="forms-card__icon" aria-hidden dangerouslySetInnerHTML={{ __html: icon }} />
                 <span className="forms-card__name">{t.name}</span>
                 {t.category && <span className="forms-card__cat">{t.category}</span>}
