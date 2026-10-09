@@ -7,7 +7,7 @@ const SETTINGS_KEY = 'app.branding';
 export const FONT_CHOICES = ['sans', 'alexandria', 'cairo', 'tajawal'] as const;
 export type FontChoice = (typeof FONT_CHOICES)[number];
 
-const BASE_FALLBACK = '"TaqyeemSans","ThSans","ThmanyahSans",Tahoma,Arial,system-ui,sans-serif';
+const BASE_FALLBACK = '"ThSans",Tahoma,Arial,system-ui,sans-serif';
 
 export const FONT_STACKS: Record<FontChoice, string> = {
   sans: BASE_FALLBACK,
@@ -32,7 +32,7 @@ export type BrandingSettings = {
 const DEFAULT_BRANDING: BrandingSettings = {
   companyName: 'شركة السويد التجارية',
   logoUrl: null,
-  fontChoice: 'tajawal',
+  fontChoice: 'sans',
 };
 
 function normalize(value: unknown): BrandingSettings {

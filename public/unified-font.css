@@ -1,29 +1,45 @@
 @font-face {
-  font-family: "TaqyeemSans";
-  src: url("/thsans.otf") format("opentype");
-  font-weight: 300 900;
+  font-family: "ThSans";
+  src: url("/fonts/thsans-300.otf") format("opentype");
+  font-weight: 300;
   font-style: normal;
   font-display: swap;
 }
 
 @font-face {
   font-family: "ThSans";
-  src: url("/thsans.otf") format("opentype");
-  font-weight: 300 900;
+  src: url("/fonts/thsans-400.otf") format("opentype");
+  font-weight: 400;
   font-style: normal;
   font-display: swap;
 }
 
 @font-face {
-  font-family: "ThmanyahSans";
-  src: url("/thsans.otf") format("opentype");
-  font-weight: 300 900;
+  font-family: "ThSans";
+  src: url("/fonts/thsans-500.otf") format("opentype");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "ThSans";
+  src: url("/fonts/thsans-700.otf") format("opentype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "ThSans";
+  src: url("/fonts/thsans-900.otf") format("opentype");
+  font-weight: 900;
   font-style: normal;
   font-display: swap;
 }
 
 :root {
-  --app-font: "TaqyeemSans", "ThSans", "ThmanyahSans", Tahoma, Arial, system-ui, sans-serif;
+  --app-font: "ThSans", Tahoma, Arial, system-ui, sans-serif;
   --ff: var(--app-font);
 }
 

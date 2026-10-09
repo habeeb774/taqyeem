@@ -125,7 +125,7 @@ const html = `<!doctype html>
   <title>تقييم أداء الموظفين</title>
   <link rel="icon" href="/favicon.png?v=20260924" type="image/png" sizes="192x192">
   <link rel="apple-touch-icon" href="/apple-icon.png?v=20260924">
-  <link rel="stylesheet" href="/unified-font.css?v=20260924-original">
+  <link rel="stylesheet" href="/unified-font.css?v=20261009-html-original">
   <style>${styles}</style>
 </head>
 <body>

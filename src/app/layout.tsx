@@ -10,7 +10,7 @@ export default async function RootLayout({children}:{children:React.ReactNode}){
   return (
     <html lang="ar" dir="rtl">
       <head>
-        <link href="/unified-font.css?v=20260924-original" rel="stylesheet" />
+        <link href="/unified-font.css?v=20261009-html-original" rel="stylesheet" />
         <link href="/system-topbar.css" rel="stylesheet" />
         <link href={FONT_STYLESHEET_URL} rel="stylesheet" />
         <style dangerouslySetInnerHTML={{ __html: overrideCss }} />
