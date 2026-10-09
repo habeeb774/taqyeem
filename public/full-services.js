@@ -257,12 +257,25 @@
     c.innerHTML='<div class="ec-top">'+flags+'<div class="ec-badge'+(done?'':' pend')+(md==='target'&&done?' sm':'')+'">'+badge+(unit?'<i>'+unit+'</i>':'')+'</div></div><div class="ec-name">'+h(emp.name)+'</div><div class="ec-title">'+(h(emp.job)||'&nbsp;')+'</div><div class="ec-row"><span class="ec-status'+(off?' off':(done?'':' pend'))+'">'+(off?(st==='leave'?'في إجازة':flagTitle()):(done?sub:'بانتظار التقييم'))+'</span>'+(extra?'<span class="ec-diff">'+h(extra)+'</span>':'')+'</div><div class="ec-bar"><i style="width:'+fill.toFixed(0)+'%"></i>'+(over?'<u style="width:'+over.toFixed(0)+'%"></u>':'')+'</div>'+(off?'<button class="ec-btn ghost" onclick="setSt(\''+esn+'\',\''+st+'\')">إلغاء الاستبعاد</button>':cardButton(emp,md,done));return c;
   };
 
+  var EVAL_SECTION_KEY='taqyeem_eval_section';
+  function evalSection(){try{return sessionStorage.getItem(EVAL_SECTION_KEY)==='tgt'?'tgt':'perf';}catch(e){return 'perf';}}
+  function setEvalSection(v){try{sessionStorage.setItem(EVAL_SECTION_KEY,v);}catch(e){}}
   renderGrid=function(){
     var g=$('empGrid');if(!g)return;g.innerHTML='';var base=vis.slice();var hr=role('hr_admin')&&can('attendance.manage');var tgt=!hr?base.filter(function(e){return hasTarget(e.name);}):[];var split=tgt.length>0;g.className='emp-grid'+(split?' has-sec':'');
     function addBtn(){if(!can('employees.create')&&!can('employees.update'))return null;var a=document.createElement('button');a.className='emp-add-card';a.type='button';a.onclick=function(){openServices('employees');};a.innerHTML='<span class="eac-plus"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span><span class="eac-t">إدارة الموظفين</span>';return a;}
     if(!base.length)g.innerHTML='<div class="d-empty">لا توجد نتائج مطابقة</div>';
     if(hr){base.forEach(function(e){g.appendChild(empCard(e,'attend'));});var ab=addBtn();if(ab)g.appendChild(ab);updateStats();return;}
-    if(split){g.appendChild(secHead('تقييم الأداء',base.length,'sh-perf'));var w1=document.createElement('div');w1.className='sec-grid';base.forEach(function(e){w1.appendChild(empCard(e,'criteria'));});var a1=addBtn();if(a1)w1.appendChild(a1);g.appendChild(w1);g.appendChild(secHead('تقييم الهدف البيعي',tgt.length,'sh-tgt'));var w2=document.createElement('div');w2.className='sec-grid';tgt.forEach(function(e){w2.appendChild(empCard(e,'target'));});g.appendChild(w2);updateStats();return;}
+    if(split){
+      /* Performance and sales-target evaluations are separate pages (tabs), not stacked sections. */
+      var sec=evalSection();
+      var tabs=document.createElement('div');tabs.className='sec-tabs';tabs.setAttribute('role','tablist');
+      [['perf','تقييم الأداء',base.length],['tgt','تقييم الهدف البيعي',tgt.length]].forEach(function(t){var b=document.createElement('button');b.type='button';b.className='sec-tab'+(sec===t[0]?' on':'');b.setAttribute('role','tab');b.setAttribute('aria-selected',sec===t[0]?'true':'false');b.innerHTML='<span>'+t[1]+'</span><span class="sh-n">'+nEmp(t[2])+'</span>';b.onclick=function(){setEvalSection(t[0]);renderGrid();};tabs.appendChild(b);});
+      g.appendChild(tabs);
+      var w=document.createElement('div');w.className='sec-grid';
+      if(sec==='tgt'){tgt.forEach(function(e){w.appendChild(empCard(e,'target'));});}
+      else{base.forEach(function(e){w.appendChild(empCard(e,'criteria'));});var a1=addBtn();if(a1)w.appendChild(a1);}
+      g.appendChild(w);updateStats();return;
+    }
     base.forEach(function(e){g.appendChild(empCard(e,'criteria'));});var a=addBtn();if(a)g.appendChild(a);updateStats();
   };
 
