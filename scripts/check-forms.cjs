@@ -33,6 +33,7 @@ const writes = [];
 const ctx = vm.createContext({
   console,
   URL,
+  URLSearchParams,
   Date,
   setTimeout: () => 0,
   clearTimeout() {},

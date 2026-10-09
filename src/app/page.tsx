@@ -5,6 +5,7 @@ import { pool } from "@/db";
 import { requireUser } from "@/server/context";
 import { getPublicBranding } from "@/server/branding";
 import { PageHeader } from "@/components/ui";
+import { availableTasks } from "@/server/tasks";
 
 async function logout() {
   "use server";
@@ -34,6 +35,7 @@ export default async function Home() {
 
   const branding = await getPublicBranding();
   const can = (permission: string) => user.permissions.includes(permission);
+  const tasks = availableTasks(user.permissions);
   const systems = [
     can("evaluations.view") && {
       title: "نظام التقييم",
@@ -169,13 +171,19 @@ export default async function Home() {
             الصفحة الرئيسية
           </span>
           <h1 style={{ margin: "0 0 16px", fontSize: 28, fontWeight: 500 }}>
-            اختر النظام
+            ماذا تريد إنجازه؟
           </h1>
           <p style={{ margin: 0, color: "var(--dst-color-text-muted)", fontSize: 14, lineHeight: 2 }}>
-            مرحبًا، {user.user.name || user.user.email}. انتقل إلى أحد الأنظمة
-            المتاحة لك.
+            مرحبًا، {user.user.name || user.user.email}. اختر مهمة مباشرة، أو افتح أحد الأنظمة المتاحة لك.
           </p>
         </div>
+        {tasks.length > 0 && (
+          <nav aria-label="مهام متاحة لك" style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 10, marginBottom: 28 }}>
+            {tasks.map(task => (
+              <a key={task.href} href={task.href} className="dst-btn dst-btn--primary dst-btn--md">{task.label}</a>
+            ))}
+          </nav>
+        )}
         <div
           style={{
             display: "grid",

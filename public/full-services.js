@@ -110,7 +110,12 @@
 
   var VIEW_KEY='taqyeem_assessment_view';
   function saveView(view){try{sessionStorage.setItem(VIEW_KEY,JSON.stringify(view));}catch(e){}}
-  function loadView(){try{return JSON.parse(sessionStorage.getItem(VIEW_KEY)||'{}')||{};}catch(e){return {};}}
+  function loadView(){
+    var task=new URLSearchParams(location.search).get('task');
+    if(task==='evaluate'&&can('evaluations.edit'))return {screen:'dashboard'};
+    if((task==='review'||task==='reports')&&tabs().some(function(tab){return tab[0]===task;}))return {screen:'dashboard'};
+    try{return JSON.parse(sessionStorage.getItem(VIEW_KEY)||'{}')||{};}catch(e){return {};}
+  }
 
   function showSystems(){
     pg('pgSystems','column');
@@ -229,12 +234,17 @@
   hasTarget=function(n){return !role('hr_admin')&&can('targets.manage')&&(isSeller(n)||isBranchMgr(n));};
   modeFor=function(){return role('hr_admin')&&can('attendance.manage')?'attend':'criteria';};
 
+  var entryTaskHandled=false;
   initDash=function(fromCycleLoad){
     if(!A.data) return;
     if(!A.cycle){var cs=A.data.cycles||[],saved=cyclePref();A.cycle=cs.find(function(c){return String(c.id)===String(saved);})||latestCycle();if(A.cycle&&!fromCycleLoad){selectCycle(A.cycle);return;}}
     hydrateState();pg('pgDash','column');$('pgDash').style.minHeight='100vh';$('tbUser').textContent='المُقيِّم: '+cu.name;
     var dt=$('dTitle');if(dt)dt.textContent=role('super_admin')?'لوحة تحكم الإدارة':(role('hr_admin')&&can('attendance.manage')?'تقييم إدارة الموارد البشرية':'تقييم أداء الموظفين');
     renderCyclePicker();installToolbarButtons();renderGrid();dAlertShow();
+    if(!entryTaskHandled){
+      entryTaskHandled=true;var task=new URLSearchParams(location.search).get('task');
+      if((task==='review'||task==='reports')&&tabs().some(function(tab){return tab[0]===task;}))openServices(task);
+    }
   };
 
   /* ---------- Grid: same cards/styles, permission-aware ---------- */

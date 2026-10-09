@@ -1252,6 +1252,10 @@ function showSection(id){
   if(id==='approvals') renderApprovals();
   if(id==='workflows') loadWorkflowManager();
 }
+function openRequestedFormsTask(){
+  var task=new URLSearchParams(location.search).get('task');
+  if(task==='approvals'&&(currentPermissions.indexOf('forms.approve')>=0||currentPermissions.indexOf('forms.reject')>=0))showSection('approvals');
+}
 var formCatalogState='loading';
 function renderForms(){
   if(formCatalogState!=='ready'){
@@ -2778,6 +2782,7 @@ $('empGrid').textContent='جارٍ تحميل النماذج...';
     renderForms();
     loadEmployeesFromNeon().catch(function(){});
     loadFormLookups().catch(function(){});
+    openRequestedFormsTask();
     await loadRemoteArchive();
   }catch(e){
     $('empGrid').textContent='تعذر تحميل النماذج. يرجى إعادة المحاولة.';
