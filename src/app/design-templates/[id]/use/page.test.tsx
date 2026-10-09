@@ -2,7 +2,11 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ReactNode } from 'react';
 
-const mocks = vi.hoisted(() => ({ api: vi.fn(), preview: false, id: 'first' }));
+const mocks = vi.hoisted(() => ({ api: vi.fn(), canvas: vi.fn(), preview: false, id: 'first' }));
+vi.mock('@/lib/design-renderer', () => ({
+  createDesignCanvas: mocks.canvas,
+  loadDesignFonts: vi.fn().mockResolvedValue(undefined),
+}));
 vi.mock('next/navigation', () => ({
   useParams: () => ({ id: mocks.id }),
   useSearchParams: () => ({ get: () => mocks.preview ? '1' : null }),
@@ -19,6 +23,7 @@ beforeEach(() => {
   mocks.preview = false;
   mocks.id = 'first';
   mocks.api.mockReset();
+  mocks.canvas.mockReset();
   vi.stubGlobal('ResizeObserver', class { observe() {} disconnect() {} });
   mocks.api.mockImplementation(async (url: string) => {
     if (url === '/api/app/auth/me') return { permissions: ['design_templates.view', 'design_templates.use'] };
@@ -72,5 +77,41 @@ describe('design use and preview loading', () => {
     await act(async () => { finish(template('القالب الأول')); });
     expect(screen.getByRole('heading', { name: 'استخدام القالب: القالب الثاني' })).toBeInTheDocument();
     expect(screen.queryByText('استخدام القالب: القالب الأول')).not.toBeInTheDocument();
+  });
+
+  it('discards a slow preview of old values instead of replacing the latest preview', async () => {
+    const pending: ((blob: Blob) => void)[] = [];
+    mocks.canvas.mockImplementation(() => ({ toBlob: (callback: (blob: Blob) => void) => pending.push(callback) }));
+    let sequence = 0;
+    vi.stubGlobal('URL', class extends URL {
+      static createObjectURL() { return `blob:test-${++sequence}`; }
+      static revokeObjectURL() {}
+    });
+    vi.stubGlobal('Image', class {
+      onload?: () => void;
+      set src(_value: string) { queueMicrotask(() => this.onload?.()); }
+    });
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, blob: async () => new Blob(['background']) }));
+    mocks.api.mockImplementation(async (url: string) => {
+      if (url === '/api/app/auth/me') return { permissions: ['design_templates.view', 'design_templates.use'] };
+      if (url === '/api/design-fonts') return { fonts: [] };
+      if (url === '/api/design-data') return { employees: [] };
+      return {
+        template: { name: 'قالب المعاينة', width: 800, height: 400, background_image_url: '/background.png' },
+        fields: [{ content: '{{name}}', field_key: 'name', field_label: 'الاسم', field_type: 'text', is_dynamic: true }],
+      };
+    });
+    render(<UsePage />);
+    await waitFor(() => expect(pending).toHaveLength(1));
+    fireEvent.change(screen.getByLabelText('الاسم'), { target: { value: 'النص الجديد' } });
+    await waitFor(() => expect(pending).toHaveLength(2));
+    await act(async () => { pending[1](new Blob(['new preview'])); });
+    const preview = screen.getByRole('img', { name: 'معاينة التصميم: قالب المعاينة' });
+    const latestSource = preview.getAttribute('src');
+    await act(async () => { pending[0](new Blob(['old preview'])); });
+    expect(preview).toHaveAttribute('src', latestSource);
+    expect(mocks.canvas.mock.calls[1][4]).toEqual({ name: 'النص الجديد' });
+    expect(fetch).toHaveBeenCalledTimes(1);
+    vi.unstubAllGlobals();
   });
 });

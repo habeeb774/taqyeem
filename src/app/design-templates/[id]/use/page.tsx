@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import { DesignShell, designApi } from '@/components/design-shell';
+import { createDesignCanvas, loadDesignFonts } from '@/lib/design-renderer';
 
 type Field = {
   id: string;
@@ -68,13 +69,6 @@ function tokens(content: string) {
   return Array.from(content.matchAll(/{{\s*([a-zA-Z][a-zA-Z0-9_.-]*)\s*}}/g), (match) => match[1]);
 }
 
-function replace(content: string, values: Record<string, string>) {
-  return content.replace(
-    /{{\s*([a-zA-Z][a-zA-Z0-9_.-]*)\s*}}/g,
-    (_, key) => values[key] ?? `{{${key}}}`,
-  );
-}
-
 async function imageForCanvas(url: string) {
   const response = await fetch(url, { credentials: 'include' });
   if (!response.ok) throw new Error('تعذر تحميل صورة الخلفية');
@@ -88,33 +82,12 @@ async function imageForCanvas(url: string) {
       URL.revokeObjectURL(objectUrl);
       resolve(image);
     };
-    image.onerror = reject;
+    image.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error('تعذر تحميل صورة الخلفية'));
+    };
     image.src = objectUrl;
   });
-}
-
-function wrap(ctx: CanvasRenderingContext2D, text: string, maxWidth: number, multiline: boolean) {
-  if (!multiline) return [text];
-
-  const lines: string[] = [];
-  for (const paragraph of text.split('\\n')) {
-    const words = paragraph.split(/\s+/);
-    let line = '';
-
-    for (const word of words) {
-      const test = line ? `${line} ${word}` : word;
-      if (ctx.measureText(test).width > maxWidth && line) {
-        lines.push(line);
-        line = word;
-      } else {
-        line = test;
-      }
-    }
-
-    lines.push(line);
-  }
-
-  return lines;
 }
 
 export default function UsePage() {
@@ -132,7 +105,11 @@ export default function UsePage() {
   const [failed, setFailed] = useState(false);
   const [loadAttempt, setLoadAttempt] = useState(0);
   const [permissions, setPermissions] = useState<string[]>([]);
+  const [previewUrl, setPreviewUrl] = useState('');
+  const [previewError, setPreviewError] = useState('');
+  const [previewAttempt, setPreviewAttempt] = useState(0);
   const exporting = useRef(false);
+  const background = useRef<{ url: string; image: Promise<HTMLImageElement> } | null>(null);
   const [viewport, setViewport] = useState(700);
   const holder = useRef<HTMLDivElement>(null);
 
@@ -176,16 +153,6 @@ export default function UsePage() {
         setValues(initial);
         setPermissions(nextPermissions);
 
-        fontResponse.fonts
-          .filter((font: any) => font.url)
-          .forEach((font: any) => {
-            if (document.querySelector(`link[data-design-font="${font.id}"]`)) return;
-            const link = document.createElement('link');
-            link.rel = 'stylesheet';
-            link.href = font.url;
-            link.dataset.designFont = font.id;
-            document.head.appendChild(link);
-          });
       })
       .catch((error) => {
         if (cancelled) return;
@@ -240,8 +207,8 @@ export default function UsePage() {
     });
   }
 
-  async function render() {
-    for (const [key, field] of variables) {
+  async function render(validate = true) {
+    for (const [key, field] of validate ? variables : []) {
       if (field.is_required && !String(values[key] || '').trim()) {
         throw new Error(`الحقل مطلوب: ${field.field_label || key}`);
       }
@@ -251,26 +218,15 @@ export default function UsePage() {
       throw new Error('القالب لا يحتوي صورة خلفية');
     }
 
-    await Promise.all(
-      fonts.map((font: any) => document.fonts.load(`400 24px "${font.family}"`).catch(() => null)),
+    await loadDesignFonts(fields, values, fonts);
+    if (background.current?.url !== template.background_image_url) {
+      const entry = { url: template.background_image_url, image: imageForCanvas(template.background_image_url) };
+      background.current = entry;
+      entry.image.catch(() => { if (background.current === entry) background.current = null; });
+    }
+    const canvas = createDesignCanvas(
+      Number(template.width), Number(template.height), await background.current!.image, fields, values, format,
     );
-
-    const canvas = document.createElement('canvas');
-    canvas.width = Number(template.width);
-    canvas.height = Number(template.height);
-
-    const ctx = canvas.getContext('2d')!;
-    if (format === 'jpg') {
-      ctx.fillStyle = '#fff';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-    }
-
-    ctx.drawImage(await imageForCanvas(template.background_image_url), 0, 0, canvas.width, canvas.height);
-
-    for (const field of [...fields].sort((a, b) => a.z_index - b.z_index)) {
-      if (!field.is_visible) continue;
-      drawField(ctx, field);
-    }
 
     return await new Promise<Blob>((resolve, reject) => {
       canvas.toBlob(
@@ -281,41 +237,27 @@ export default function UsePage() {
     });
   }
 
-  function drawField(ctx: CanvasRenderingContext2D, field: Field) {
-    let text = replace(field.content, values);
-    if (field.max_length) text = text.slice(0, field.max_length);
-
-    ctx.save();
-    ctx.globalAlpha = field.opacity;
-    ctx.translate(field.x + field.width / 2, field.y + field.height / 2);
-    ctx.rotate((field.rotation * Math.PI) / 180);
-    ctx.translate(-field.width / 2, -field.height / 2);
-
-    let size = field.font_size;
-    ctx.font = `${field.font_weight} ${size}px "${field.font_family}"`;
-    let lines = wrap(ctx, text, field.width, field.multiline);
-
-    if (field.auto_fit) {
-      while (
-        size > field.min_font_size &&
-        (lines.length * size * field.line_height > field.height ||
-          lines.some((line) => ctx.measureText(line).width > field.width))
-      ) {
-        size -= 1;
-        ctx.font = `${field.font_weight} ${size}px "${field.font_family}"`;
-        lines = wrap(ctx, text, field.width, field.multiline);
-      }
-    }
-
-    ctx.fillStyle = field.font_color;
-    ctx.textAlign = field.text_align;
-    ctx.textBaseline = 'top';
-    ctx.direction = field.direction === 'ltr' ? 'ltr' : 'rtl';
-
-    const x = field.text_align === 'center' ? field.width / 2 : field.text_align === 'left' ? 0 : field.width;
-    lines.forEach((line, index) => ctx.fillText(line, x, index * size * field.line_height, field.width));
-    ctx.restore();
-  }
+  useEffect(() => {
+    let cancelled = false;
+    let objectUrl = '';
+    setPreviewUrl('');
+    setPreviewError('');
+    const timer = setTimeout(() => {
+      if (!template) return;
+      render(false).then(blob => {
+        if (cancelled) return;
+        objectUrl = URL.createObjectURL(blob);
+        setPreviewUrl(objectUrl);
+      }).catch(error => {
+        if (!cancelled) setPreviewError(error.message || 'تعذر إنشاء المعاينة.');
+      });
+    }, 120);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [template, fields, values, fonts, format, previewAttempt]);
 
   async function exportDesign(save: boolean) {
     if (exporting.current || previewOnly || !permissions.includes('design_templates.export')) return;
@@ -428,25 +370,17 @@ export default function UsePage() {
           </section>
 
           <section className="du-preview" ref={holder}>
+            {previewError ? <div>
+              <p role="status">{previewError}</p>
+              <button className="ds-btn" onClick={() => setPreviewAttempt(value => value + 1)}>إعادة تحميل المعاينة</button>
+            </div> : !previewUrl ? <p role="status">جارٍ تحديث المعاينة...</p> :
             <div
               className="du-canvas"
               style={{ width: Number(template.width) * scale, height: Number(template.height) * scale }}
             >
-              <div
-                style={{
-                  position: 'relative',
-                  width: template.width,
-                  height: template.height,
-                  transform: `scale(${scale})`,
-                  transformOrigin: 'top right',
-                  backgroundImage: `url(${template.background_image_url})`,
-                  backgroundSize: '100% 100%',
-                  backgroundRepeat: 'no-repeat',
-                }}
-              >
-                {fields.map((field) => field.is_visible && renderPreviewField(field))}
-              </div>
+              <img src={previewUrl} alt={`معاينة التصميم: ${template.name}`} style={{ width: '100%', height: '100%', display: 'block' }} />
             </div>
+            }
           </section>
         </div>
       </main>
@@ -556,33 +490,4 @@ export default function UsePage() {
     );
   }
 
-  function renderPreviewField(field: Field) {
-    return (
-      <div
-        className="du-text"
-        key={field.id}
-        style={{
-          right: field.x,
-          top: field.y,
-          width: field.width,
-          height: field.height,
-          fontFamily: field.font_family,
-          fontSize: field.font_size,
-          fontWeight: field.font_weight,
-          color: field.font_color,
-          textAlign: field.text_align as any,
-          direction: field.direction as any,
-          lineHeight: field.line_height,
-          letterSpacing: field.letter_spacing,
-          opacity: field.opacity,
-          transform: `rotate(${field.rotation}deg)`,
-          zIndex: field.z_index,
-          justifyContent:
-            field.text_align === 'center' ? 'center' : field.text_align === 'left' ? 'flex-end' : 'flex-start',
-        }}
-      >
-        {replace(field.content, values)}
-      </div>
-    );
-  }
 }
