@@ -294,7 +294,8 @@
     }catch(e){toast(humanError(e.message));}
   };
 
-  var _autosaveNotesTimer=null;
+  var _autosaveNotesTimer=null,pendingNotesSave=Promise.resolve(),finishingEvaluation=false;
+  window.taqEvaluationFinishLabel=function(){return can('evaluations.submit')?'حفظ وإرسال للمراجعة':'حفظ المسودة';};
   window.taqAutosaveAnswer=async function(criterionId,score,comment){
     var emp=empById(_eId),eid=emp&&A.evaluationIds[emp.id];if(!eid||_eMode!=='criteria')return;
     try{
@@ -304,12 +305,25 @@
     }catch(e){toast('لم تُحفظ الإجابة. اختر الدرجة مجددًا لإعادة المحاولة: '+humanError(e.message));return false;}
   };
   window.taqAutosaveNotes=function(notes){
-    clearTimeout(_autosaveNotesTimer);_autosaveNotesTimer=setTimeout(async function(){var emp=empById(_eId),eid=emp&&A.evaluationIds[emp.id];if(!eid||_eMode!=='criteria')return;try{await api('/api/app/evaluations',{method:'POST',body:{action:'autosave',evaluation_id:eid,notes:String(notes||'')}});}catch(e){toast('تعذر حفظ الملاحظات تلقائياً');}},500);
+    clearTimeout(_autosaveNotesTimer);
+    var emp=empById(_eId),eid=emp&&A.evaluationIds[emp.id];if(!eid||_eMode!=='criteria')return;
+    _autosaveNotesTimer=setTimeout(function(){
+      pendingNotesSave=pendingNotesSave.then(async function(){
+        try{await api('/api/app/evaluations',{method:'POST',body:{action:'autosave',evaluation_id:eid,notes:String(notes||'')}});}
+        catch(e){toast('تعذر حفظ الملاحظات تلقائياً. ستُحفظ عند إنهاء التقييم');}
+      });
+    },500);
   };
 
   finishEval=async function(){
-    var emp=empById(_eId);if(!emp)return;var nav=$('evalNav'),saveBtn=nav&&nav.querySelector('.eval-next');busy(saveBtn,true,'جارٍ الحفظ...');
+    if(finishingEvaluation)return;
+    var emp=empById(_eId);if(!emp)return;
+    finishingEvaluation=true;var draftSaved=false,message='تم حفظ تقييم '+emp.name;
+    var nav=$('evalNav'),saveBtn=nav&&nav.querySelector('.eval-next');busy(saveBtn,true,'جارٍ الحفظ...');
+    if(nav)nav.querySelectorAll('button').forEach(function(b){b.disabled=true;});
+    clearTimeout(_autosaveNotesTimer);
     try{
+      await pendingNotesSave;
       if(_eMode==='target'){
         if(_tg.got==null||!_tg.tgt)throw new Error('أدخل الهدف والمبلغ المحقق');
         await api('/api/app/targets',{method:'POST',body:{cycle_id:currentCycleId(),employee_id:emp.id,target:Number(_tg.tgt),achieved:Number(_tg.got),reason:_tg.edited?(_tg.why||'تعديل الهدف'):undefined}});
@@ -324,11 +338,19 @@
         if(answers.some(function(a){return !a.score;}))throw new Error('evaluation_incomplete');
         if(_eCrit.some(function(c){return c.comment_required&&!String(_eComments[c.key]||'').trim();}))throw new Error('required_comment_missing');
         var saved=await api('/api/app/evaluations',{method:'POST',body:{action:'save',evaluation_id:eid,notes:_eNotes||'',answers:answers}});evals[emp.id]=Object.assign(evals[emp.id]||{},{answers:Object.assign({},_eAns),notes:_eNotes,_score:saved.score!=null?Number(saved.score):null,doneAt:nowDT().date+' — '+nowDT().time});
-        if(can('evaluations.submit')){await api('/api/app/evaluations',{method:'POST',body:{action:'submitted',evaluation_id:eid}});A.evaluationStatus[emp.id]='submitted';}
+        draftSaved=true;message='تم حفظ مسودة تقييم '+emp.name;
+        if(can('evaluations.submit')){
+          await api('/api/app/evaluations',{method:'POST',body:{action:'submitted',evaluation_id:eid}});
+          A.evaluationStatus[emp.id]='submitted';message='تم إرسال تقييم '+emp.name+' للمراجعة';
+        }
       }
-      hide('pgEval');pg('pgDash','column');$('pgDash').style.minHeight='100vh';renderGrid();toast('تم حفظ تقييم '+emp.name);
-    }catch(e){toast(humanError(e.message));}
-    finally{busy(saveBtn,false);}
+      hide('pgEval');pg('pgDash','column');$('pgDash').style.minHeight='100vh';renderGrid();toast(message);
+    }catch(e){toast((draftSaved?'حُفظت المسودة، لكن لم يتم إرسالها للمراجعة. ':'')+humanError(e.message));}
+    finally{
+      finishingEvaluation=false;
+      if(nav)nav.querySelectorAll('button').forEach(function(b){b.disabled=false;});
+      busy(saveBtn,false);
+    }
   };
 
   fullMark=async function(id){var e=empById(id);if(!e||!can('attendance.manage'))return;try{var entries=(A.data.penalties||[]).map(function(p){return {penalty_type_id:p.id,occurrences:0};});await api('/api/app/attendance',{method:'POST',body:{cycle_id:currentCycleId(),employee_id:e.id,notes:'',entries:entries}});evals[e.id]=Object.assign(evals[e.id]||{},{att:{fp:0,late:0,early:0,ord:0},notes:'',_attendanceScore:100});renderGrid();toast('تم منح '+e.name+' الدرجة الكاملة');}catch(err){toast(humanError(err.message));}};

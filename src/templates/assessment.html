@@ -1355,7 +1355,11 @@ function renderEvalStep(){
   }
   const nav=$('evalNav');nav.innerHTML='';
   if(_eStep>0){const p=document.createElement('button');p.className='eval-prev';p.textContent='السابق';p.onclick=()=>{_eStep--;renderEvalStep();};nav.appendChild(p);}
-  if(isNotes){const f=document.createElement('button');f.className='eval-next';f.textContent='إنهاء التقييم';f.onclick=finishEval;nav.appendChild(f);}
+  if(isNotes){
+    const f=document.createElement('button');f.className='eval-next';
+    f.textContent=window.taqEvaluationFinishLabel?window.taqEvaluationFinishLabel():'حفظ التقييم';
+    f.onclick=finishEval;nav.appendChild(f);
+  }
   else{
     const k=crit[_eStep].key,ok=_eAns[k]!=null&&(!crit[_eStep].comment_required||String(_eComments[k]||'').trim());
     const nx=document.createElement('button');nx.className='eval-next';nx.textContent='التالي';nx.disabled=!ok;
@@ -1914,7 +1918,7 @@ function atApply(){
 function atStep(k,d){ _at[k]=Math.max(0,(parseInt(_at[k])||0)+d); var el=$('at_'+k); if(el)el.value=_at[k]; atApply(); }
 function atReset(){ for(var k in DEDUCT){_at[k]=0; var el=$('at_'+k); if(el)el.value=0;} atApply(); }
 </script>
-<script src="/full-services.js?v=20261009-criterion-comments"></script>
+<script src="/full-services.js?v=20261009-evaluation-finish"></script>
 </body>
 </html>
 
