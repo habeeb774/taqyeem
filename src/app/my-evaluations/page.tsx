@@ -3,7 +3,8 @@ import type { CSSProperties } from "react";
 
 import { pool } from "@/db";
 import { requireUser } from "@/server/context";
-import { Badge, PageHeader } from "@/components/ui";
+import { Badge } from "@/components/ui";
+import { SystemTopbar } from "@/components/SystemTopbar";
 import { ReviewForm } from './ReviewForm';
 
 type AnswerRow = {
@@ -148,18 +149,7 @@ export default async function MyEvaluationsPage() {
 
   return (
     <main dir="rtl" style={styles.page}>
-      <PageHeader
-        title="تقييمي"
-        brandMark={<span style={styles.brandIcon}>✓</span>}
-        nav={
-          <a
-            href="/"
-            style={{ color: "#fff", border: "1px solid rgba(255,255,255,.28)", borderRadius: 10, padding: "9px 13px", fontSize: 12 }}
-          >
-            الأنظمة
-          </a>
-        }
-      />
+      <SystemTopbar title="تقييمي" />
 
       <section style={styles.shell}>
         <div style={styles.hero}>

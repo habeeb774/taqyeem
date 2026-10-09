@@ -1,25 +1,7 @@
 import { redirect } from "next/navigation";
-import { cookies } from "next/headers";
-import { signOut } from "@/auth";
-import { pool } from "@/db";
 import { requireUser } from "@/server/context";
-import { getPublicBranding } from "@/server/branding";
-import { PageHeader } from "@/components/ui";
+import { SystemTopbar } from "@/components/SystemTopbar";
 import { availableTasks } from "@/server/tasks";
-
-async function logout() {
-  "use server";
-  const cookieStore = await cookies();
-  const token = cookieStore.get("taqyeem_session")?.value;
-  if (token) {
-    await pool
-      .query("delete from public.sessions where session_token = $1", [token])
-      .catch(() => undefined);
-  }
-  cookieStore.delete("taqyeem_session");
-  await signOut({ redirect: false });
-  redirect("/login");
-}
 
 // Authentication is the application entry point. The system selector is
 // reached only after the user has authenticated inside the legacy shell.
@@ -33,7 +15,6 @@ export default async function Home() {
     redirect("/login");
   }
 
-  const branding = await getPublicBranding();
   const can = (permission: string) => user.permissions.includes(permission);
   const tasks = availableTasks(user.permissions, Boolean(user.user.employeeId));
   const systems = [
@@ -90,64 +71,7 @@ export default async function Home() {
         fontFamily: "var(--app-font)",
       }}
     >
-      <PageHeader
-        eyebrow={branding.companyName}
-        title="منصة تقييم"
-        brandMark={
-          <div
-            style={{
-              width: 36,
-              height: 36,
-              borderRadius: 12,
-              border: "1px solid rgba(255,255,255,.38)",
-              background: "rgba(255,255,255,.13) var(--brand-logo-url) center/23px 29px no-repeat",
-              filter: "brightness(0) invert(1)",
-            }}
-            aria-label="شعار السويد"
-          />
-        }
-        nav={
-          <>
-            {can("settings.manage") && (
-              <a
-                href="/admin/branding"
-                aria-label="إعدادات النظام"
-                title="إعدادات النظام"
-                style={{
-                  display: "grid",
-                  placeItems: "center",
-                  width: 38,
-                  height: 38,
-                  border: "1px solid rgba(255,255,255,.32)",
-                  borderRadius: 10,
-                  background: "rgba(255,255,255,.1)",
-                  fontSize: 16,
-                }}
-              >
-                ⚙︎
-              </a>
-            )}
-            <form action={logout}>
-            <button
-              type="submit"
-              style={{
-                height: 38,
-                border: "1px solid rgba(255,255,255,.32)",
-                borderRadius: 10,
-                background: "rgba(255,255,255,.1)",
-                color: "#fff",
-                padding: "0 14px",
-                fontFamily: "var(--app-font)",
-                fontSize: 13,
-                cursor: "pointer",
-              }}
-            >
-              خروج
-            </button>
-            </form>
-          </>
-        }
-      />
+      <SystemTopbar showSettings={can("settings.manage")} />
       <section
         style={{
           width: "min(900px, 100%)",

@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from 'react';
-import { Button, Card, Field, Input, PageHeader, Select } from '@/components/ui';
+import { Button, Card, Field, Input, Select } from '@/components/ui';
+import { SystemTopbar } from '@/components/SystemTopbar';
 
 const FONT_OPTIONS: { value: 'sans' | 'alexandria' | 'cairo' | 'tajawal'; label: string }[] = [
   { value: 'sans', label: 'سانس (الخط الافتراضي)' },
@@ -85,16 +86,7 @@ export default function BrandingClient() {
 
   return (
     <main dir="rtl" style={{ minHeight: '100vh', background: 'var(--dst-color-bg-page)', color: 'var(--dst-color-text)', fontFamily: 'var(--app-font)' }}>
-      <PageHeader
-        eyebrow="إعدادات النظام"
-        title="هوية النظام"
-        maxWidth={700}
-        nav={
-          <a href="/" style={{ color: '#fff', border: '1px solid rgba(255,255,255,.28)', borderRadius: 10, padding: '9px 13px', fontSize: 12 }}>
-            الأنظمة
-          </a>
-        }
-      />
+      <SystemTopbar title="هوية النظام" showSettings />
 
       <section style={{ maxWidth: 700, margin: '0 auto', padding: '28px 34px 60px' }}>
         {loading ? (
