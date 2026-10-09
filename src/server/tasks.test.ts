@@ -18,4 +18,13 @@ describe('permitted task shortcuts', () => {
   it('requires access to the system as well as the action', () => {
     expect(availableTasks(['forms.approve', 'reports.view', 'evaluations.edit'])).toEqual([]);
   });
+  it('offers design creation only when the user can view, use and export templates', () => {
+    const permissions = ['design_templates.view', 'design_templates.use', 'design_templates.export'];
+    expect(availableTasks(permissions)).toEqual([
+      { label: 'أنشئ تصميمًا', href: '/design-templates?task=create-design' },
+    ]);
+    for (const omitted of permissions) {
+      expect(availableTasks(permissions.filter(permission => permission !== omitted))).toEqual([]);
+    }
+  });
 });

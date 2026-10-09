@@ -1,8 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { FormEvent, useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { FormEvent, useEffect, useRef, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { DesignShell, designApi } from '@/components/design-shell';
 import { Badge, Button, EmptyState, Field, Input, Modal, Select, Textarea } from '@/components/ui';
 
@@ -41,6 +41,7 @@ function statusVariant(status: string): 'default' | 'success' | 'warning' {
 
 export default function DesignsPage() {
   const router = useRouter();
+  const browseForUse = useSearchParams().get('task') === 'create-design';
   const [items, setItems] = useState<Template[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [creators, setCreators] = useState<Creator[]>([]);
@@ -56,12 +57,17 @@ export default function DesignsPage() {
   const [createdBy, setCreatedBy] = useState('');
   const [sort, setSort] = useState('newest');
   const [toast, setToast] = useState('');
+  const [loadError, setLoadError] = useState('');
+  const loadVersion = useRef(0);
 
   const can = (permission: string) => permissions.includes(permission);
   const pages = Math.max(1, Math.ceil(total / 12));
 
   async function load() {
+    const version = ++loadVersion.current;
     setLoading(true);
+    setLoadError('');
+    setItems([]);
 
     try {
       const params = new URLSearchParams({
@@ -69,7 +75,8 @@ export default function DesignsPage() {
         limit: '12',
         q,
         category,
-        status,
+        status: browseForUse ? 'published' : status,
+        ready: browseForUse ? '1' : '0',
         created_by: createdBy,
         sort,
       });
@@ -79,6 +86,7 @@ export default function DesignsPage() {
         designApi('/api/design-categories'),
         designApi('/api/app/auth/me'),
       ]);
+      if (version !== loadVersion.current) return;
 
       setItems(list.templates);
       setTotal(list.total);
@@ -86,16 +94,20 @@ export default function DesignsPage() {
       setPermissions(me.permissions || []);
       setCreators(list.creators || []);
     } catch (error: any) {
-      setToast(error.message);
+      if (version === loadVersion.current) setLoadError(error.message || 'تعذر تحميل القوالب.');
     } finally {
-      setLoading(false);
+      if (version === loadVersion.current) setLoading(false);
     }
   }
 
   useEffect(() => {
+    loadVersion.current += 1;
+    setLoading(true);
+    setItems([]);
+    setLoadError('');
     const timer = setTimeout(load, 250);
-    return () => clearTimeout(timer);
-  }, [page, q, category, status, createdBy, sort]);
+    return () => { clearTimeout(timer); loadVersion.current += 1; };
+  }, [page, q, category, status, createdBy, sort, browseForUse]);
 
   useEffect(() => {
     if (!toast) return;
@@ -205,24 +217,24 @@ export default function DesignsPage() {
       <main className="ds-main">
         <div className="ds-head">
           <div>
-            <h1>قوالب التصاميم</h1>
-            <p>إنشاء قوالب ديناميكية واستخدامها وتصديرها من قاعدة البيانات.</p>
+            <h1>{browseForUse ? 'أنشئ تصميمًا' : 'قوالب التصاميم'}</h1>
+            <p>{browseForUse ? 'اختر قالبًا جاهزًا، ثم عبّئ بياناته وحمّل التصميم.' : 'اختر قالبًا لاستخدامه، أو أدر قوالب التصميم بحسب صلاحياتك.'}</p>
           </div>
 
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            {can('design_templates.manage_categories') && (
+            {!browseForUse && can('design_templates.manage_categories') && (
               <Button variant="ghost" size="sm" onClick={addCategory}>
                 إضافة تصنيف
               </Button>
             )}
 
-            {can('design_templates.manage_fonts') && (
+            {!browseForUse && can('design_templates.manage_fonts') && (
               <Button variant="ghost" size="sm" onClick={addFont}>
                 إضافة خط
               </Button>
             )}
 
-            {can('design_templates.create') && (
+            {!browseForUse && can('design_templates.create') && (
               <Button size="sm" onClick={() => setModal(true)}>
                 + إضافة قالب تصميم
               </Button>
@@ -258,20 +270,21 @@ export default function DesignsPage() {
           </Select>
 
           <Select
-            value={status}
+            value={browseForUse ? 'published' : status}
+            disabled={browseForUse}
             onChange={(event) => {
               setStatus(event.target.value);
               setPage(1);
             }}
             aria-label="فلترة بالحالة"
           >
-            <option value="">كل الحالات</option>
-            <option value="draft">مسودة</option>
+            {!browseForUse && <option value="">كل الحالات</option>}
+            {!browseForUse && <option value="draft">مسودة</option>}
             <option value="published">منشور</option>
-            <option value="archived">مؤرشف</option>
+            {!browseForUse && <option value="archived">مؤرشف</option>}
           </Select>
 
-          <Select value={createdBy} onChange={(event) => setCreatedBy(event.target.value)} aria-label="فلترة بالمنشئ">
+          <Select value={createdBy} onChange={(event) => { setCreatedBy(event.target.value); setPage(1); }} aria-label="فلترة بالمنشئ">
             <option value="">كل المنشئين</option>
             {creators.map((item) => (
               <option key={item.id} value={item.id}>
@@ -280,7 +293,7 @@ export default function DesignsPage() {
             ))}
           </Select>
 
-          <Select value={sort} onChange={(event) => setSort(event.target.value)} aria-label="ترتيب النتائج">
+          <Select value={sort} onChange={(event) => { setSort(event.target.value); setPage(1); }} aria-label="ترتيب النتائج">
             <option value="newest">الأحدث</option>
             <option value="oldest">الأقدم</option>
             <option value="name">الاسم</option>
@@ -293,8 +306,11 @@ export default function DesignsPage() {
         </section>
 
         {loading ? (
-          <div className="ds-loading">جارٍ تحميل القوالب...</div>
-        ) : items.length ? (
+          <div className="ds-loading" role="status">جارٍ تحميل القوالب...</div>
+        ) : loadError ? <EmptyState>
+          <p role="alert">{loadError}</p>
+          <Button onClick={load}>إعادة المحاولة</Button>
+        </EmptyState> : items.length ? (
           <div className={`ds-grid ${view}`}>
             {items.map((template) => (
               <article className="dst-card" key={template.id} style={{ padding: 0, overflow: 'hidden' }}>
@@ -329,33 +345,39 @@ export default function DesignsPage() {
 
                     <Link href={`/design-templates/${template.id}/use?preview=1`}>معاينة</Link>
 
-                    {can('design_templates.edit') && (
+                    {!browseForUse && can('design_templates.edit') && (
                       <Link href={`/design-templates/${template.id}/edit`}>تعديل</Link>
                     )}
 
-                    {can('design_templates.create') && (
+                    {!browseForUse && can('design_templates.create') && (
                       <button onClick={() => action(template.id, 'duplicate')}>نسخ</button>
                     )}
 
-                    {can('design_templates.edit') && template.status !== 'archived' && (
+                    {!browseForUse && can('design_templates.edit') && template.status !== 'archived' && (
                       <button onClick={() => action(template.id, 'archive')}>أرشفة</button>
                     )}
 
-                    {can('design_templates.delete') && (
+                    {!browseForUse && can('design_templates.delete') && (
                       <button onClick={() => action(template.id, 'delete')}>حذف</button>
                     )}
 
-                    <Link href={`/design-templates/${template.id}/use?preview=1`}>المزيد</Link>
                   </div>
                 </div>
               </article>
             ))}
           </div>
         ) : (
-          <EmptyState>لا توجد قوالب مطابقة. ابدأ بإضافة قالب تصميم جديد.</EmptyState>
+          <EmptyState>
+            <p>{q || category || createdBy || (!browseForUse && status) ? 'لا توجد قوالب تطابق البحث والتصفية.'
+              : browseForUse ? 'لا توجد قوالب جاهزة للاستخدام حاليًا. يلزم نشر قالب يحتوي على خلفية بواسطة مسؤول القوالب.'
+              : can('design_templates.create') ? 'لا توجد قوالب بعد. يمكنك إضافة قالب تصميم جديد.' : 'لا توجد قوالب متاحة لك حاليًا.'}</p>
+            {(q || category || createdBy || (!browseForUse && status)) && <Button variant="ghost" onClick={() => {
+              setQ(''); setCategory(''); setCreatedBy(''); setStatus(''); setPage(1);
+            }}>عرض جميع القوالب</Button>}
+          </EmptyState>
         )}
 
-        <div className="ds-pages">
+        {!loading && !loadError && items.length > 0 && <div className="ds-pages">
           {Array.from({ length: pages }, (_, index) => index + 1)
             .slice(Math.max(0, page - 3), page + 2)
             .map((pageNumber) => (
@@ -367,7 +389,7 @@ export default function DesignsPage() {
                 {pageNumber}
               </button>
             ))}
-        </div>
+        </div>}
       </main>
 
       <Modal

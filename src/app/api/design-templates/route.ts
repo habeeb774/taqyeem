@@ -30,6 +30,7 @@ export async function GET(req: NextRequest) {
     const status = params.get('status') || '';
     const createdBy = params.get('created_by') || '';
     const order = selectedOrder(params.get('sort'));
+    const readyForUse = params.get('ready') === '1';
     const canManageTemplates =
       can(context, 'design_templates.edit') ||
       can(context, 'design_templates.publish') ||
@@ -55,6 +56,7 @@ export async function GET(req: NextRequest) {
          and ($4 = '' or t.status = $4)
          and ($5 = '' or t.created_by::text = $5)
          and ($6::boolean or t.status = 'published')
+         and (not $9::boolean or (t.status = 'published' and nullif(t.background_image_url, '') is not null))
        order by ${order}
        limit $7 offset $8`,
       [
@@ -66,6 +68,7 @@ export async function GET(req: NextRequest) {
         canManageTemplates,
         limit,
         offset,
+        readyForUse,
       ],
     );
 
@@ -76,8 +79,9 @@ export async function GET(req: NextRequest) {
        where t.organization_id = $1::uuid
          and t.deleted_at is null
          and ($2::boolean or t.status = 'published')
+         and (not $3::boolean or (t.status = 'published' and nullif(t.background_image_url, '') is not null))
        order by u.name`,
-      [context.organizationId, canManageTemplates],
+      [context.organizationId, canManageTemplates, readyForUse],
     );
 
     return NextResponse.json({
