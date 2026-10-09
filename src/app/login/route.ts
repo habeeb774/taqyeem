@@ -141,6 +141,10 @@ const script = `
       }
       location.replace('/');
     } catch (loginError) {
+      if (recovery && loginError.message === 'RESET_TOKEN_INVALID') {
+        document.querySelector('.forgot').textContent = 'طلب رابط استعادة جديد';
+        document.querySelector('.forgot').onclick = () => location.assign('/login?reset=1');
+      }
       error.textContent = loginError.message === 'RATE_LIMITED'
         ? 'محاولات كثيرة، حاول بعد 15 دقيقة'
         : recovery ? (loginError.message === 'RESET_TOKEN_INVALID'
