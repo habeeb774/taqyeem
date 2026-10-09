@@ -21,8 +21,15 @@
   function currentCycleId(){return A.cycle&&A.cycle.id?A.cycle.id:null;}
   function cyclePref(){try{return sessionStorage.getItem('taqyeem_cycle_id')||'';}catch(e){return '';}}
   function saveCyclePref(id){try{if(id)sessionStorage.setItem('taqyeem_cycle_id',String(id));}catch(e){}}
-  function cycleLabel(c){return (c.name||('تقييم '+(MONTHS[Number(c.month)-1]||'')+' '+c.year))+' · '+(c.status||'');}
-  function latestCycle(){var cs=(A.data&&A.data.cycles||[]).slice();if(!cs.length)return null;var preferred=cs.find(function(c){return ['open','in_progress'].indexOf(c.status)>=0;});return preferred||cs[0];}
+  function cycleLabel(c){
+    var labels={draft:'مسودة',open:'مفتوحة',in_progress:'قيد التقييم',review:'قيد المراجعة',approved:'معتمدة',published:'منشورة',locked:'مقفلة'};
+    return (c.name||('تقييم '+(MONTHS[Number(c.month)-1]||'')+' '+c.year))+' · '+(labels[c.status]||'');
+  }
+  function latestCycle(){
+    var cs=(A.data&&A.data.cycles||[]).slice().sort(function(a,b){return Number(b.year)-Number(a.year)||Number(b.month)-Number(a.month);});
+    if(!cs.length)return null;
+    return cs.find(function(c){return ['open','in_progress'].indexOf(c.status)>=0;})||cs[0];
+  }
   function renderCyclePicker(){
     var wrap=$('cyclePicker'),sel=$('cycleSelect'),cs=(A.data&&A.data.cycles||[]);
     if(!wrap||!sel)return;
@@ -30,7 +37,13 @@
     sel.innerHTML=cs.map(function(c){return '<option value="'+h(c.id)+'">'+h(cycleLabel(c))+'</option>';}).join('');
     if(A.cycle)sel.value=String(A.cycle.id);
     wrap.style.display='flex';
-    if(!sel.dataset.bound){sel.dataset.bound='1';sel.addEventListener('change',function(){var c=cs.find(function(x){return String(x.id)===String(sel.value);});if(c)selectCycle(c);});}
+    if(!sel.dataset.bound){
+      sel.dataset.bound='1';
+      sel.addEventListener('change',function(){
+        var c=(A.data&&A.data.cycles||[]).find(function(x){return String(x.id)===String(sel.value);});
+        if(c)selectCycle(c);
+      });
+    }
   }
   function empById(id){return allE.find(function(e){return String(e.id)===String(id);});}
   function serverEmployeeById(id){return (A.data&&A.data.employees||[]).find(function(e){return String(e.id)===String(id);});}
