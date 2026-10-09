@@ -1112,11 +1112,18 @@ var selectedFormEmployee=null;
 /* Runtime cache only. Persistent drafts and issued documents are stored by the Neon API. */
 var formMemory={};
 function lsGet(k,def){ return Object.prototype.hasOwnProperty.call(formMemory,k)?formMemory[k]:def; }
-function lsSet(k,val){ formMemory[k]=val; persistDrafts(k,val); return true; }
+function lsSet(k,val){ formMemory[k]=val; return true; }
 function draftDocumentNo(id){ return 'draft_'+(currentUser&&currentUser.id?currentUser.id:'unknown')+'_'+id; }
-function persistDrafts(k,val){
-  if(String(k).indexOf(LS_DRAFTS)!==0)return;
-  Object.keys(val||{}).forEach(function(id){fetch('/api/app/forms',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({form_type:'__draft__',document_no:draftDocumentNo(id),status:'draft',payload:{formId:id,draft:val[id]}})}).catch(function(){});});
+var draftSaveQueue=Promise.resolve(),draftSaveVersion=0;
+function persistDraft(id,state){
+  var body=JSON.stringify({form_type:'__draft__',document_no:draftDocumentNo(id),status:'draft',payload:{formId:id,draft:state}});
+  var request=draftSaveQueue.then(async function(){
+    var response=await fetch('/api/app/forms',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:body});
+    var result=await response.json();
+    if(!response.ok||!result.ok)throw new Error('DRAFT_SAVE_FAILED');
+  });
+  draftSaveQueue=request.catch(function(){});
+  return request;
 }
 function nextDocNo(){
   var y=new Date().getFullYear();
@@ -1495,7 +1502,7 @@ function removeClause(id){
   scheduleSave&&scheduleSave();
   toast('تم حذف البند');
 }
-var _autosaveBound=false, _saveTimer=null;
+var _autosaveBound=false, _saveTimer=null,draftDirty=false,draftChangeVersion=0;
 function bindAutosave(){
   if(_autosaveBound) return;
   var area=$('formFill'); if(!area) return;
@@ -1504,16 +1511,46 @@ function bindAutosave(){
   _autosaveBound=true;
 }
 function scheduleSave(){
-  if(typeof scheduleLayout==='function') scheduleLayout(); clearTimeout(_saveTimer); _saveTimer=setTimeout(saveDraft,800); }
-function saveDraft(){
+  if(typeof scheduleLayout==='function') scheduleLayout();
+  if(currentPermissions.indexOf('forms.create')<0)return;
+  draftDirty=true;draftChangeVersion++;clearTimeout(_saveTimer);_saveTimer=setTimeout(saveDraft,800);
+}
+async function saveDraft(){
   if(!activeId) return;
+  if(currentPermissions.indexOf('forms.create')<0)return true;
+  var id=activeId,version=++draftSaveVersion,changeVersion=draftChangeVersion,state=captureState();
   var drafts=lsGet(draftKey(),{});
-  drafts[activeId]=captureState();
+  drafts[id]=state;
   lsSet(draftKey(),drafts);
-  var ind=$('saveIndicator'); if(ind){ ind.classList.add('show'); clearTimeout(window._si); window._si=setTimeout(function(){ind.classList.remove('show');},1500); }
+  var ind=$('saveIndicator');
+  if(ind){
+    ind.classList.add('show');ind.textContent='جارٍ حفظ المسودة...';ind.onclick=null;ind.onkeydown=null;
+    ind.setAttribute('role','status');ind.setAttribute('aria-live','polite');ind.removeAttribute('tabindex');ind.style.color='';
+    clearTimeout(window._si);
+  }
+  try{
+    await persistDraft(id,state);
+    if(version!==draftSaveVersion||activeId!==id)return true;
+    if(changeVersion===draftChangeVersion)draftDirty=false;
+    if(ind){ind.textContent='تم حفظ المسودة';window._si=setTimeout(function(){ind.classList.remove('show');},1500);}
+    return true;
+  }catch(e){
+    if(version!==draftSaveVersion||activeId!==id)return false;
+    if(ind){
+      ind.textContent='تعذر حفظ المسودة — اضغط لإعادة المحاولة';ind.onclick=saveDraft;ind.style.color='#c43232';
+      ind.setAttribute('role','button');ind.setAttribute('tabindex','0');
+      ind.onkeydown=function(event){if(event.key==='Enter'||event.key===' '){event.preventDefault();saveDraft();}};
+    }
+    toast('لم تُحفظ آخر التعديلات. أعد المحاولة قبل مغادرة الصفحة');
+    return false;
+  }
 }
 function clearDraft(id){ var drafts=lsGet(draftKey(),{}); if(drafts[id]){ delete drafts[id]; formMemory[draftKey()]=drafts; fetch('/api/app/forms?document_no='+encodeURIComponent(draftDocumentNo(id)),{method:'DELETE',credentials:'same-origin'}).catch(function(){}); } }
-function closeForm(){ $('pgForm').style.display='none'; $('app').style.display='flex'; activeId=null; }
+async function closeForm(){
+  clearTimeout(_saveTimer);
+  if(activeId&&draftDirty&&await saveDraft()===false)return;
+  $('pgForm').style.display='none';$('app').style.display='flex';activeId=null;
+}
 /* the fill view IS the A4 document now; kept so old call sites stay harmless */
 function formTab(t){ $('formFill').style.display='block'; }
 /* eye icons (open / closed) — SVG, no emoji */
