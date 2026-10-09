@@ -48,7 +48,9 @@ const ctx = vm.createContext({
     addEventListener() {},
     createElement: () => node("new"),
   },
-  location: { replace() {} },
+  // /forms/editor redirects to /forms without a form/open/task param; pass one
+  // so the legacy catalogue and add-form flow still initialise for this check.
+  location: { search: "?task=build-check", replace() {}, assign() {} },
   fetch: async (url, options) => {
     if (options?.method === "PUT") {
       writes.push(JSON.parse(options.body));
