@@ -49,6 +49,7 @@ export type FormState = {
   taFontSize?: Record<string, number>;
   clauseExtra?: { id: string; title: string }[];
   clauseRemoved?: Record<string, boolean>;
+  clauseSeq?: number;
 };
 
 const LOGO_URL = '/brand-logo.png';

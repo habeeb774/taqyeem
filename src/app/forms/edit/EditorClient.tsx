@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { Button, EmptyState, Input, Select, Textarea } from '@/components/ui';
+import { Button, EmptyState, Field, Input, Modal, Select, Textarea } from '@/components/ui';
 import { formsApi, useToast } from '../_shared/client';
 import {
   buildDocumentHtml,
@@ -296,10 +296,53 @@ export function EditorClient({
     labelOf: (fl: FieldDef) => state.labelOverrides?.[fl.id] ?? fl.label,
     setInputs,
     toggleHidden: (id: string) => update((s) => ({ ...s, hiddenFields: { ...s.hiddenFields, [id]: !s.hiddenFields?.[id] } })),
+    rename: (fl: FieldDef, label: string) => update((s) => ({ ...s, labelOverrides: { ...s.labelOverrides, [fl.id]: label.trim() || fl.label } })),
+    fontSize: (id: string) => state.taFontSize?.[id] || 1,
+    changeFontSize,
     lookups,
     onPickEmployee: (fl: FieldDef, employee: Employee) =>
       update((s) => ({ ...s, employeeId: fl.id === 'pay_to' ? s.employeeId : employee.id, inputs: { ...s.inputs, ...employeeAutofill(form, s, employee, fl.id) } })),
   };
+  function changeFontSize(id: string, dir: 1 | -1) {
+    // Same steps and bounds as the legacy taFont(): 0.1em steps between 0.7 and 2.2.
+    update((s) => {
+      const current = s.taFontSize?.[id] || 1;
+      const next = Math.round(Math.min(2.2, Math.max(0.7, current + dir * 0.1)) * 100) / 100;
+      return { ...s, taFontSize: { ...s.taFontSize, [id]: next } };
+    });
+  }
+
+  function addField(secKey: string, field: FieldDef) {
+    update((s) => ({
+      ...s,
+      extraFields: { ...s.extraFields, [secKey]: [...(s.extraFields?.[secKey] || []), field] },
+      inputs: { ...s.inputs, [`f_${field.id}`]: '' },
+    }));
+  }
+
+  function addClause(title: string) {
+    update((s) => {
+      const seq = (s.clauseSeq || 0) + 1;
+      const id = `xc_${seq}`;
+      return { ...s, clauseSeq: seq, clauseExtra: [...(s.clauseExtra || []), { id, title }], inputs: { ...s.inputs, [`f_${id}`]: '' } };
+    });
+  }
+
+  function removeClause(id: string) {
+    if (!confirm('حذف هذا البند نهائياً من هذا المستند؟')) return;
+    update((s) => {
+      const isExtra = (s.clauseExtra || []).some((c) => c.id === id);
+      const hiddenFields = { ...s.hiddenFields };
+      delete hiddenFields[id];
+      return {
+        ...s,
+        hiddenFields,
+        clauseExtra: isExtra ? (s.clauseExtra || []).filter((c) => c.id !== id) : s.clauseExtra,
+        clauseRemoved: isExtra ? s.clauseRemoved : { ...s.clauseRemoved, [id]: true },
+      };
+    });
+  }
+
   const statusText = { idle: '', saving: 'جارٍ حفظ المسودة...', saved: 'تم حفظ المسودة', failed: 'تعذر حفظ المسودة' }[saveStatus];
 
   return (
@@ -337,23 +380,45 @@ export function EditorClient({
             const fld = fields[0];
             if (!fld || state.clauseRemoved?.[fld.id]) return null;
             return (
-              <Group key={si} title={sec.title || 'نص المستند'}>
-                <RichText value={inputs[`f_${fld.id}`] || ''} onChange={(html) => setInputs({ [`f_${fld.id}`]: html })} placeholder="اكتب النص هنا..." />
+              <Group key={si} title={sec.title || 'نص المستند'} actions={sec.boxed ? <Button size="sm" variant="ghost" onClick={() => removeClause(fld.id)}>حذف البند</Button> : null}>
+                <RichText
+                  value={inputs[`f_${fld.id}`] || ''}
+                  onChange={(html) => setInputs({ [`f_${fld.id}`]: html })}
+                  placeholder="اكتب النص هنا..."
+                  fontSize={fieldProps.fontSize(fld.id)}
+                  onFontSize={(dir) => changeFontSize(fld.id, dir)}
+                />
               </Group>
             );
           }
           return (
             <Group key={si} title={sec.title || sec.line?.replace(/<[^>]+>/g, '').slice(0, 40) || ''}>
               {fields.map((fl) => <FieldRow key={fl.id} field={fl} {...fieldProps} />)}
+              {!sec.line && <AddFieldButton onAdd={(field) => addField(`sec${si}`, field)} />}
             </Group>
           );
         })}
 
         {(state.clauseExtra || []).map((c) => (
-          <Group key={c.id} title={c.title}>
-            <RichText value={inputs[`f_${c.id}`] || ''} onChange={(html) => setInputs({ [`f_${c.id}`]: html })} placeholder="نص البند..." />
+          <Group key={c.id} title="">
+            <div style={{ display: 'flex', gap: 6 }}>
+              <Input
+                aria-label="عنوان البند"
+                value={c.title}
+                onChange={(e) => update((s) => ({ ...s, clauseExtra: (s.clauseExtra || []).map((x) => (x.id === c.id ? { ...x, title: e.target.value } : x)) }))}
+              />
+              <Button size="sm" variant="ghost" onClick={() => removeClause(c.id)}>حذف البند</Button>
+            </div>
+            <RichText
+              value={inputs[`f_${c.id}`] || ''}
+              onChange={(html) => setInputs({ [`f_${c.id}`]: html })}
+              placeholder="نص البند..."
+              fontSize={fieldProps.fontSize(c.id)}
+              onFontSize={(dir) => changeFontSize(c.id, dir)}
+            />
           </Group>
         ))}
+        {(form.sections || []).some((sec) => sec.free && sec.boxed) && <AddClauseButton onAdd={addClause} />}
 
         {form.itemsTable && (
           <Group title={form.itemsTable.title}>
@@ -368,6 +433,7 @@ export function EditorClient({
         {(form.sections2 || []).map((sec, si) => (
           <Group key={`s2-${si}`} title={sec.title || ''}>
             {(sec.fields || []).concat(extra[`s2_${si}`] || []).map((fl) => <FieldRow key={fl.id} field={fl} {...fieldProps} />)}
+            <AddFieldButton onAdd={(field) => addField(`s2_${si}`, field)} />
           </Group>
         ))}
 
@@ -438,10 +504,15 @@ export function EditorClient({
 
 // ---------- pieces ----------
 
-function Group({ title, children }: { title: string; children: ReactNode }) {
+function Group({ title, children, actions }: { title: string; children: ReactNode; actions?: ReactNode }) {
   return (
     <section className="forms-editor__group">
-      {title && <h3 className="forms-editor__group-title">{title}</h3>}
+      {(title || actions) && (
+        <div className="forms-editor__group-head">
+          <h3 className="forms-editor__group-title">{title}</h3>
+          {actions}
+        </div>
+      )}
       {children}
     </section>
   );
@@ -466,6 +537,9 @@ function FieldRow({
   labelOf,
   setInputs,
   toggleHidden,
+  rename,
+  fontSize,
+  changeFontSize,
   lookups,
   onPickEmployee,
 }: {
@@ -475,9 +549,13 @@ function FieldRow({
   labelOf: (fl: FieldDef) => string;
   setInputs: (values: Record<string, string>) => void;
   toggleHidden: (id: string) => void;
+  rename: (fl: FieldDef, label: string) => void;
+  fontSize: (id: string) => number;
+  changeFontSize: (id: string, dir: 1 | -1) => void;
   lookups: { branches: Lookup[]; departments: Lookup[] };
   onPickEmployee: (fl: FieldDef, employee: Employee) => void;
 }) {
+  const [renaming, setRenaming] = useState(false);
   if (field.id === 'inst_values') return null;
   const key = `f_${field.id}`;
   const id = `field-${field.id}`;
@@ -514,7 +592,12 @@ function FieldRow({
       </Select>
     );
   } else if (field.type === 'textarea') {
-    control = <Textarea id={id} rows={4} value={value} onChange={(e) => set(e.target.value)} />;
+    control = (
+      <>
+        <FontSizeTools onFontSize={(dir) => changeFontSize(field.id, dir)} />
+        <Textarea id={id} rows={4} value={value} onChange={(e) => set(e.target.value)} style={{ fontSize: `${fontSize(field.id)}em` }} />
+      </>
+    );
   } else if (field.type === 'date') {
     control = <Input id={id} type="date" dir="ltr" value={value} onChange={(e) => set(e.target.value)} />;
   } else {
@@ -523,10 +606,31 @@ function FieldRow({
 
   return (
     <div className={`forms-editor__row${isHidden ? ' is-hidden' : ''}`}>
-      <label className="forms-editor__label" htmlFor={id}>
-        {label}
-        {hideButton}
-      </label>
+      {renaming ? (
+        <Input
+          aria-label="اسم الخانة"
+          defaultValue={labelOf(field)}
+          autoFocus
+          onBlur={(e) => {
+            rename(field, e.target.value);
+            setRenaming(false);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') e.currentTarget.blur();
+            if (e.key === 'Escape') setRenaming(false);
+          }}
+        />
+      ) : (
+        <label className="forms-editor__label" htmlFor={id}>
+          {label}
+          <span style={{ display: 'flex', gap: 10 }}>
+            <button type="button" className="forms-editor__hide" onClick={() => setRenaming(true)} title="تعديل اسم الخانة">
+              تعديل الاسم
+            </button>
+            {hideButton}
+          </span>
+        </label>
+      )}
       {control}
     </div>
   );
@@ -578,7 +682,19 @@ function EmployeePicker({ id, value, onChange, onPick, byNumber }: { id: string;
 }
 
 /** Rich text body (bold/alignment from the legacy editor survive); pasted content is kept as plain text. */
-function RichText({ value, onChange, placeholder }: { value: string; onChange: (html: string) => void; placeholder: string }) {
+function RichText({
+  value,
+  onChange,
+  placeholder,
+  fontSize = 1,
+  onFontSize,
+}: {
+  value: string;
+  onChange: (html: string) => void;
+  placeholder: string;
+  fontSize?: number;
+  onFontSize?: (dir: 1 | -1) => void;
+}) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (ref.current && ref.current.innerHTML !== value && document.activeElement !== ref.current) ref.current.innerHTML = value;
@@ -587,10 +703,17 @@ function RichText({ value, onChange, placeholder }: { value: string; onChange: (
     <div className="forms-editor__rich-wrap">
       <div className="forms-editor__rich-tools">
         <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => { document.execCommand('bold'); onChange(ref.current?.innerHTML || ''); }} title="تعريض النص المحدد"><b>B</b></button>
+        {onFontSize && (
+          <>
+            <button type="button" onClick={() => onFontSize(-1)} title="تصغير الخط">A−</button>
+            <button type="button" onClick={() => onFontSize(1)} title="تكبير الخط">A+</button>
+          </>
+        )}
       </div>
       <div
         ref={ref}
         className="forms-editor__rich"
+        style={{ fontSize: `${fontSize}em` }}
         contentEditable
         suppressContentEditableWarning
         data-ph={placeholder}
@@ -673,5 +796,114 @@ function Installments({ inputs, setInputs }: { inputs: Record<string, string>; s
         </>
       )}
     </Group>
+  );
+}
+
+function FontSizeTools({ onFontSize }: { onFontSize: (dir: 1 | -1) => void }) {
+  return (
+    <div className="forms-editor__rich-tools" style={{ border: 0, padding: 0 }}>
+      <button type="button" onClick={() => onFontSize(-1)} title="تصغير الخط">A−</button>
+      <button type="button" onClick={() => onFontSize(1)} title="تكبير الخط">A+</button>
+    </div>
+  );
+}
+
+const NEW_FIELD_TYPES: [string, string][] = [
+  ['text', 'نص'],
+  ['date', 'تاريخ'],
+  ['select', 'قائمة اختيار'],
+  ['textarea', 'نص طويل'],
+];
+
+/** Adds a custom field to one section of this document only (legacy addField()). */
+function AddFieldButton({ onAdd }: { onAdd: (field: FieldDef) => void }) {
+  const [open, setOpen] = useState(false);
+  const [label, setLabel] = useState('');
+  const [type, setType] = useState('text');
+  const [options, setOptions] = useState('خيار 1، خيار 2');
+
+  function save() {
+    if (!label.trim()) return;
+    const field: FieldDef = { type, label: label.trim(), id: `x_${Date.now()}`, req: false };
+    if (type === 'select') {
+      const list = options.split(/[،,]/).map((o) => o.trim()).filter(Boolean);
+      field.options = list.length ? list : ['خيار 1'];
+    }
+    onAdd(field);
+    setOpen(false);
+    setLabel('');
+    setType('text');
+  }
+
+  return (
+    <>
+      <Button size="sm" variant="ghost" onClick={() => setOpen(true)}>إضافة خانة</Button>
+      <Modal
+        open={open}
+        onClose={() => setOpen(false)}
+        title="إضافة خانة"
+        titleId="forms-add-field-title"
+        actions={
+          <>
+            <Button variant="ghost" onClick={() => setOpen(false)}>إلغاء</Button>
+            <Button disabled={!label.trim()} onClick={save}>إضافة</Button>
+          </>
+        }
+      >
+        <div style={{ display: 'grid', gap: 12, width: 'min(400px, calc(100vw - 80px))' }}>
+          <Field id="nf-field-label" label="اسم الخانة">
+            <Input id="nf-field-label" value={label} onChange={(e) => setLabel(e.target.value)} />
+          </Field>
+          <Field id="nf-field-type" label="نوع الخانة">
+            <Select id="nf-field-type" value={type} onChange={(e) => setType(e.target.value)}>
+              {NEW_FIELD_TYPES.map(([value, text]) => <option key={value} value={value}>{text}</option>)}
+            </Select>
+          </Field>
+          {type === 'select' && (
+            <Field id="nf-field-options" label="الخيارات" hint="افصل بين الخيارات بفاصلة (،)">
+              <Input id="nf-field-options" value={options} onChange={(e) => setOptions(e.target.value)} />
+            </Field>
+          )}
+        </div>
+      </Modal>
+    </>
+  );
+}
+
+/** Adds an extra clause to contract-style forms (legacy addClause()). */
+function AddClauseButton({ onAdd }: { onAdd: (title: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const [title, setTitle] = useState('بند إضافي');
+  return (
+    <>
+      <Button variant="ghost" onClick={() => setOpen(true)}>إضافة بند</Button>
+      <Modal
+        open={open}
+        onClose={() => setOpen(false)}
+        title="إضافة بند"
+        titleId="forms-add-clause-title"
+        actions={
+          <>
+            <Button variant="ghost" onClick={() => setOpen(false)}>إلغاء</Button>
+            <Button
+              disabled={!title.trim()}
+              onClick={() => {
+                onAdd(title.trim());
+                setOpen(false);
+                setTitle('بند إضافي');
+              }}
+            >
+              إضافة
+            </Button>
+          </>
+        }
+      >
+        <div style={{ width: 'min(400px, calc(100vw - 80px))' }}>
+          <Field id="nf-clause-title" label="عنوان البند">
+            <Input id="nf-clause-title" value={title} onChange={(e) => setTitle(e.target.value)} />
+          </Field>
+        </div>
+      </Modal>
+    </>
   );
 }

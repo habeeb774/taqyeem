@@ -528,3 +528,9 @@
     max-height: none;
   }
 }
+.forms-editor__group-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--dst-space-2);
+}

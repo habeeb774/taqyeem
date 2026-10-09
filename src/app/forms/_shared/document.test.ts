@@ -73,3 +73,31 @@ describe('buildDocumentHtml parity with legacy docHtml()', () => {
     expect(ported).toBe(legacy);
   });
 });
+
+describe('buildDocumentHtml parity for document-level edits', () => {
+  const { forms, dom } = loadLegacy();
+  const run = (code: string) => (dom.window as unknown as { eval(code: string): unknown }).eval(code);
+  // Forms with a normal section, and the contract form with boxed clauses.
+  const cases = forms.filter((f) => f.id === 'paper_contract' || f.id === 'violation' || f.id === 'cash_advance');
+
+  it.each(cases.map((f) => [f.id, f] as const))('%s: added field, renamed label, font size, clauses', async (id, form) => {
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    run('allForms = FORMS.slice()');
+    run(`openForm(${JSON.stringify(id)})`);
+    // addField() and addClause() read their answers from prompt(); answer them in order.
+    run(`(function(){ var answers=['خانة إضافية','1']; window.prompt=function(){ return answers.shift(); }; })()`);
+    run("addField('sec0')");
+    run(`(function(){ var answers=['بند جديد']; window.prompt=function(){ return answers.shift(); }; window.confirm=function(){ return true; }; })()`);
+    run('if (hasBoxedClauses(allForms.find(function(x){return x.id===activeId;}))) { addClause(); var boxed=(allForms.find(function(x){return x.id===activeId;}).sections||[]).find(function(s){return s.boxed;}); if (boxed) removeClause(boxed.fields[0].id); }');
+    const firstField = (form.sections || []).flatMap((s) => s.fields || []).find((f) => f.type !== 'date');
+    if (firstField) run(`labelOverrides[${JSON.stringify(firstField.id)}]='اسم معدّل'`);
+    const textarea = (form.sections || []).flatMap((s) => s.fields || []).find((f) => f.type === 'textarea' || (form.sections || []).some((s) => s.free));
+    if (textarea) run(`taFont(${JSON.stringify(textarea.id)}, 1); taFont(${JSON.stringify(textarea.id)}, 1)`);
+    fillInputs(dom.window.document);
+    const state = run('captureState()') as FormState;
+    const legacy = run('docHtml()') as string;
+    expect(legacy).toContain('خانة إضافية');
+    const ported = buildDocumentHtml(form, JSON.parse(JSON.stringify(state)), { formId: id });
+    expect(ported).toBe(legacy);
+  });
+});
