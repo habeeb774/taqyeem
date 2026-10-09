@@ -147,8 +147,18 @@
   async function selectCycle(cycle){
     if(!cycle||!cycle.id)return;
     A.cycle=cycle;saveCyclePref(cycle.id);
+    allE=[];vis=[];evals={};CS={};A.cycleData=null;A.evaluationIds={};A.evaluationStatus={};
+    ['stTotal','stDone','stPend'].forEach(function(id){var el=$(id);if(el)el.textContent='—';});
+    var avg=$('avgBox');if(avg)avg.style.display='none';
     var g=$('empGrid');if(g)g.innerHTML='<div class="d-empty">جارٍ تحميل بيانات الدورة...</div>';
-    try{await loadCycleData();initDash(true);}catch(e){toast(humanError(e.message));renderGrid();}
+    try{if(await loadCycleData())initDash(true);}catch(e){
+      if(String(currentCycleId())!==String(cycle.id))return;
+      toast(humanError(e.message));
+      if(g){
+        g.innerHTML='<div class="d-empty">تعذر تحميل بيانات الدورة. <button type="button" class="ec-btn">إعادة المحاولة</button></div>';
+        g.querySelector('button').onclick=function(){selectCycle(cycle);};
+      }
+    }
   }
   function selectedMonth(){var m=ldMo();return m&&m.m&&m.y?{m:Number(m.m),y:Number(m.y)}:null;}
   function findCycle(m,y){return (A.data&&A.data.cycles||[]).find(function(c){return Number(c.month)===Number(m)&&Number(c.year)===Number(y);})||null;}
@@ -181,15 +191,25 @@
     finally{busy(btn,false);}
   };
 
+  var cycleLoadVersion=0;
   async function loadCycleData(){
     if(!currentCycleId())return;
-    var cid=currentCycleId();
+    var cid=currentCycleId(),version=++cycleLoadVersion;
     var jobs=[];
-    if(can('evaluations.view'))jobs.push(api('/api/app/exclusions?cycle_id='+encodeURIComponent(cid)).catch(function(){return {exclusions:[]};}));else jobs.push(Promise.resolve({exclusions:[]}));
-    if(can('attendance.view'))jobs.push(api('/api/app/attendance?cycle_id='+encodeURIComponent(cid)).catch(function(){return {attendance:[],entries:[]};}));else jobs.push(Promise.resolve({attendance:[],entries:[]}));
-    var base=await loadBootstrap(cid);var res=await Promise.all(jobs);A.data=base;A.permissions=A.data.permissions||[];A.roles=A.data.roles||[];A.cycle=(A.data.cycles||[]).find(function(x){return String(x.id)===String(cid)})||A.cycle;
+    jobs.push(can('evaluations.view')?api('/api/app/exclusions?cycle_id='+encodeURIComponent(cid)):Promise.resolve({exclusions:[]}));
+    jobs.push(can('attendance.view')?api('/api/app/attendance?cycle_id='+encodeURIComponent(cid)):Promise.resolve({attendance:[],entries:[]}));
+    jobs.push(api('/api/app/bootstrap?cycle_id='+encodeURIComponent(cid)));
+    var res;
+    try{res=await Promise.all(jobs);}catch(e){
+      if(version!==cycleLoadVersion||String(currentCycleId())!==String(cid))return false;
+      throw e;
+    }
+    if(version!==cycleLoadVersion||String(currentCycleId())!==String(cid))return false;
+    A.data=res[2];A.permissions=A.data.permissions||[];A.roles=A.data.roles||[];
+    A.cycle=(A.data.cycles||[]).find(function(x){return String(x.id)===String(cid)})||A.cycle;
     A.cycleData={exclusions:res[0].exclusions||[],attendance:res[1].attendance||[],attendanceEntries:res[1].entries||[]};
     hydrateState();
+    return true;
   }
 
   function hydrateState(){
