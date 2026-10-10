@@ -360,7 +360,8 @@ img{max-width:100%;}
   background:var(--blue);margin-left:9px;vertical-align:middle;}
 .sh-tgt .sh-n{background:var(--blue-soft);color:var(--blue);}
 .sec-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(196px,1fr));gap:16px;}
-.sec-tabs{display:flex;gap:22px;margin:0 0 18px;border-bottom:1px solid var(--border);overflow-x:auto;}
+.sec-tabs{display:flex;gap:22px;margin:0 0 18px;border-bottom:1px solid var(--border);overflow-x:auto;overflow-y:hidden;scrollbar-width:none;}
+.sec-tabs::-webkit-scrollbar{display:none;}
 .sec-tab{display:flex;align-items:center;gap:9px;background:none;border:0;border-bottom:2px solid transparent;padding:10px 2px;font:inherit;font-size:.95rem;color:var(--text3);cursor:pointer;white-space:nowrap;margin-bottom:-1px;}
 .sec-tab.on{color:var(--text);font-weight:500;border-bottom-color:var(--blue);}
 .sec-tab.on .sh-n{background:var(--blue-soft);color:var(--blue);}
