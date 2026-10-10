@@ -71,7 +71,7 @@ export default async function Home() {
         fontFamily: "var(--app-font)",
       }}
     >
-      <SystemTopbar showSettings={can("settings.manage")} />
+      <SystemTopbar />
       <section
         style={{
           width: "min(900px, 100%)",

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import type { ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 
 // Same markup and classes as public/system-topbar.js, which the static
 // assessment/forms pages use, so every system shares one top bar.
@@ -15,16 +15,27 @@ const systems = [
   { href: '/admin/recruitment', label: 'التوظيف' },
 ];
 
-export function SystemTopbar({
-  title,
-  tabs,
-  showSettings = false,
-}: {
-  title?: string;
-  tabs?: ReactNode;
-  showSettings?: boolean;
-}) {
+// One permissions lookup per page load, shared by every SystemTopbar instance.
+let settingsAccess: Promise<boolean> | null = null;
+function loadSettingsAccess() {
+  settingsAccess ??= fetch('/api/app/auth/me', { credentials: 'same-origin', cache: 'no-store' })
+    .then((response) => (response.ok ? response.json() : null))
+    .then((data) => Boolean(data?.permissions?.includes('settings.manage')))
+    .catch(() => false);
+  return settingsAccess;
+}
+
+export function SystemTopbar({ title, tabs }: { title?: string; tabs?: ReactNode }) {
   const path = usePathname() || '/';
+  // The settings link shows on every page for users who can manage settings (same rule as system-topbar.js).
+  const [showSettings, setShowSettings] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    loadSettingsAccess().then((allowed) => alive && setShowSettings(allowed));
+    return () => {
+      alive = false;
+    };
+  }, []);
   const isActive = (href: string) => (href === '/' ? path === '/' : path === href || path.startsWith(`${href}/`));
 
   async function logout() {

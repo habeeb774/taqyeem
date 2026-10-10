@@ -86,7 +86,7 @@ export default function BrandingClient() {
 
   return (
     <main dir="rtl" style={{ minHeight: '100vh', background: 'var(--dst-color-bg-page)', color: 'var(--dst-color-text)', fontFamily: 'var(--app-font)' }}>
-      <SystemTopbar title="هوية النظام" showSettings />
+      <SystemTopbar title="هوية النظام" />
 
       <section style={{ maxWidth: 700, margin: '0 auto', padding: '28px 34px 60px' }}>
         {loading ? (
