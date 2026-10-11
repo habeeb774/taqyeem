@@ -10,6 +10,7 @@ import {
 } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { DesignShell, designApi } from "@/components/design-shell";
+import { loadDesignFonts } from "@/lib/design-renderer";
 
 type Field = {
   id?: string;
@@ -140,6 +141,14 @@ export default function EditorPage() {
     saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null),
     drag = useRef<any>(null);
   const selectedField = selected == null ? null : fields[selected];
+  useEffect(() => {
+    if (!fields.length || !fonts.length) return;
+    let active = true;
+    loadDesignFonts(fields, {}, fonts).catch((error: unknown) => {
+      if (active) setMessage(error instanceof Error ? error.message : "تعذر تحميل خط التصميم. أعد المحاولة.");
+    });
+    return () => { active = false; };
+  }, [fields, fonts]);
   const pushHistory = useCallback(
     (snapshot = fields) => {
       history.current.push(
@@ -666,6 +675,7 @@ export default function EditorPage() {
                     f.is_visible && (
                       <div
                         key={f.id || f.field_key}
+                        data-design-text
                         className={`de-layer ${selected === i ? "selected" : ""} ${f.is_locked ? "locked" : ""}`}
                         onPointerDown={(e) => pointerDown(e, i, "move")}
                         onClick={(e) => {

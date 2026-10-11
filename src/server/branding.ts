@@ -82,11 +82,8 @@ export async function getBrandingOverrideCss(): Promise<string> {
     `--ff: ${fontStack} !important;`,
     branding.logoUrl ? `--brand-logo-url: url('${branding.logoUrl}') !important;` : '',
   ].filter(Boolean).join(' ');
-  // The universal selector guarantees every element uses the chosen font
-  // regardless of which selector list (unified-font.css's fixed tag list,
-  // the legacy templates' own scattered var(--ff) rules, component-level
-  // styles, etc.) would otherwise have applied — no element can be missed.
-  return `:root{${overrides}} *{font-family:var(--app-font) !important}`;
+  // Design text has its own saved typography; branding applies to the surrounding UI.
+  return `:root{${overrides}} *:not([data-design-text]):not([data-design-text] *){font-family:var(--app-font) !important}`;
 }
 
 // Self-hosted (public/fonts) instead of Google Fonts: a blocked or slow

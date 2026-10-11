@@ -19,7 +19,7 @@ export type DesignTextField = {
   multiline: boolean;
   auto_fit: boolean;
   min_font_size: number;
-  max_length?: number;
+  max_length?: number | null;
   is_visible: boolean;
   z_index: number;
 };
