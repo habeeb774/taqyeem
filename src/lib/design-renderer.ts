@@ -114,10 +114,17 @@ export function drawDesignField(
   ctx.letterSpacing = `${field.letter_spacing}px`;
   let size = field.font_size;
   ctx.font = `${field.font_weight} ${size}px "${field.font_family}"`;
+  ctx.textBaseline = 'alphabetic';
   let lines = wrap(ctx, text, field.width, field.multiline);
+  const textBounds = () => {
+    const metrics = lines.map(line => ctx.measureText(line));
+    const ascent = Math.max(0, ...metrics.map(metric => metric.actualBoundingBoxAscent ?? size));
+    const descent = Math.max(0, ...metrics.map(metric => metric.actualBoundingBoxDescent ?? size * 0.25));
+    return { ascent, height: ascent + descent + Math.max(0, lines.length - 1) * size * field.line_height + 2 };
+  };
   if (field.auto_fit) {
     while (size > field.min_font_size && (
-      lines.length * size * field.line_height > field.height ||
+      textBounds().height > field.height ||
       lines.some(line => ctx.measureText(line).width > field.width)
     )) {
       size -= 1;
@@ -127,9 +134,10 @@ export function drawDesignField(
   }
   ctx.fillStyle = field.font_color;
   ctx.textAlign = field.text_align;
-  ctx.textBaseline = 'top';
+  // Alphabetic ink bounds include Arabic hamzas and marks above the nominal em box.
+  const baseline = textBounds().ascent + 1;
   const x = field.text_align === 'center' ? field.width / 2 : field.text_align === 'left' ? 0 : field.width;
-  lines.forEach((line, index) => ctx.fillText(line, x, index * size * field.line_height, field.width));
+  lines.forEach((line, index) => ctx.fillText(line, x, baseline + index * size * field.line_height, field.width));
   ctx.restore();
 }
 

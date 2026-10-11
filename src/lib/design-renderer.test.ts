@@ -20,6 +20,14 @@ function context() {
 }
 
 describe('design canvas text layout', () => {
+  it('keeps hamzas above the font em box inside the clipping rectangle', () => {
+    const ctx = context();
+    ctx.measureText.mockReturnValue({ width: 40, actualBoundingBoxAscent: 27, actualBoundingBoxDescent: 5 } as TextMetrics);
+    drawDesignField(ctx as unknown as CanvasRenderingContext2D, field, { name: 'عائلة' }, 1000);
+    const baseline = ctx.fillText.mock.calls[0][2];
+    expect(baseline - 27).toBeGreaterThanOrEqual(1);
+    expect(baseline + 5).toBeLessThan(field.height);
+  });
   it.each(['Alexandria', 'Cairo', 'Tajawal', 'IBM Plex Sans Arabic', 'Noto Kufi Arabic', 'Noto Naskh Arabic'])(
     'loads %s locally under the production content security policy', async (family) => {
       const load = vi.fn().mockResolvedValue([]);
@@ -54,7 +62,7 @@ describe('design canvas text layout', () => {
       expect(ctx.font).toBe('500 20px "ThSans"');
       expect(ctx.direction).toBe(direction);
       expect(ctx.letterSpacing).toBe('2px');
-      expect(ctx.fillText).toHaveBeenCalledWith('حبيب', 200, 0, 200);
+      expect(ctx.fillText).toHaveBeenCalledWith('حبيب', 200, 21, 200);
     }
   });
 
@@ -62,7 +70,7 @@ describe('design canvas text layout', () => {
     const ctx = context();
     drawDesignField(ctx as unknown as CanvasRenderingContext2D, field, { name: 'أول\r\n\r\nثالث' }, 1000);
     expect(ctx.fillText.mock.calls).toEqual([
-      ['أول', 200, 0, 200], ['', 200, 30, 200], ['ثالث', 200, 60, 200],
+      ['أول', 200, 21, 200], ['', 200, 51, 200], ['ثالث', 200, 81, 200],
     ]);
   });
 
@@ -71,7 +79,7 @@ describe('design canvas text layout', () => {
     drawDesignField(ctx as unknown as CanvasRenderingContext2D, {
       ...field, content: 'نص القالب', is_dynamic: true, field_key: 'name',
     }, { name: 'النص المطلوب' }, 1000);
-    expect(ctx.fillText).toHaveBeenCalledWith('النص المطلوب', 200, 0, 200);
+    expect(ctx.fillText).toHaveBeenCalledWith('النص المطلوب', 200, 21, 200);
   });
 
   it('fits long text before drawing and clips it to the same field box', () => {
@@ -83,7 +91,7 @@ describe('design canvas text layout', () => {
     expect(ctx.font).toBe('500 12px "ThSans"');
     expect(ctx.rect).toHaveBeenCalledWith(0, 0, 100, 100);
     expect(ctx.clip).toHaveBeenCalledOnce();
-    expect(ctx.fillText).toHaveBeenCalledWith('نص طويل', 100, 0, 100);
+    expect(ctx.fillText).toHaveBeenCalledWith('نص طويل', 100, 13, 100);
   });
 
   it('waits for the used font stylesheet and the exact weight before rendering, and allows retry after failure', async () => {
