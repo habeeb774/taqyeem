@@ -5,7 +5,8 @@
     var run=function(){return new Promise(function(resolve){
       var previous=document.activeElement,dialog=document.createElement('dialog');
       dialog.dir='rtl';dialog.setAttribute('aria-labelledby','app-dialog-title');
-      dialog.style.cssText='border:1px solid #e4e7ef;border-radius:20px;padding:0;width:calc(100% - 32px);max-width:480px;color:#18233e;background:white;font:inherit;';
+      dialog.style.cssText='position:fixed;inset:0;margin:auto;max-height:calc(100dvh - 32px);overflow:auto;'
+        +'border:1px solid #e4e7ef;border-radius:20px;padding:0;width:calc(100% - 32px);max-width:480px;color:#18233e;background:white;font:inherit;';
       var style=document.createElement('style');
       style.textContent='dialog.app-dialog::backdrop{background:rgba(15,23,42,.5)}';
       dialog.className='app-dialog';dialog.appendChild(style);
