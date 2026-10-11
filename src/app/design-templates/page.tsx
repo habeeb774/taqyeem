@@ -1,4 +1,5 @@
 'use client';
+import { appConfirm } from '@/lib/app-dialog';
 
 import Link from 'next/link';
 import { FormEvent, useEffect, useRef, useState } from 'react';
@@ -158,7 +159,7 @@ export default function DesignsPage() {
         ? 'سيتم حذف القالب من القائمة. هل تريد المتابعة؟'
         : 'هل تريد أرشفة القالب؟';
 
-      if (!confirm(message)) return;
+      if (!await appConfirm(message)) return;
 
       const request = type === 'delete'
         ? { method: 'DELETE' }

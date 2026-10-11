@@ -34,7 +34,7 @@ function loadLegacy() {
       Object.assign(window, {
         fetch: async () => ({ ok: true, status: 200, json: async () => ({ ok: true, templates: [], documents: [], permissions: [] }) }),
         requestAnimationFrame: () => 0,
-        confirm: () => false,
+        appConfirm: async () => false,
       });
     },
   });

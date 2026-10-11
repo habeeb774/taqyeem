@@ -525,6 +525,7 @@ select.doc-inp{cursor:pointer;}
 @media (prefers-reduced-motion:reduce){
 }
 </style>
+<script src="/app-dialog.js"></script>
 </head>
 <body>
 <script>
@@ -1339,7 +1340,7 @@ function changeArchivePage(delta){var next=archivePage+delta;if(next<1||next>arc
 async function transitionArchived(documentId,action){
   var comment='';
   if(action==='cancel'){
-    comment=prompt('سبب إلغاء المستند:')||'';
+    comment=await appPrompt('سبب إلغاء المستند:')||'';
     if(comment.trim().length<3){toast('اكتب سبب الإلغاء بوضوح');return;}
   }
   try{
@@ -1348,8 +1349,8 @@ async function transitionArchived(documentId,action){
     await loadRemoteArchive();toast(action==='archive'?'تمت أرشفة المستند':'تم إلغاء المستند');
   }catch(e){toast('تعذر تنفيذ الإجراء: '+(e.message||''));}
 }
-function deleteArchived(docNo){
-  if(!confirm('حذف المستند '+docNo+' من الأرشيف؟')) return;
+async function deleteArchived(docNo){
+  if(!await appConfirm('حذف المستند '+docNo+' من الأرشيف؟')) return;
   var arch=lsGet(archiveKey(),[]);
   arch=arch.filter(function(r){return r.docNo!==docNo;});
   lsSet(archiveKey(),arch); fetch('/api/app/forms?document_no='+encodeURIComponent(docNo),{method:'DELETE',credentials:'same-origin'}).catch(function(){}); renderArchive();
@@ -1376,7 +1377,7 @@ async function renderApprovals(){
 }
 async function actApproval(documentId,action){
   var comment='';
-  if(action!=='approve'){comment=prompt(action==='reject'?'سبب الرفض:':'ملاحظة الإعادة للتعديل:')||'';if(comment.trim().length<3){toast('اكتب ملاحظة واضحة');return;}}
+  if(action!=='approve'){comment=await appPrompt(action==='reject'?'سبب الرفض:':'ملاحظة الإعادة للتعديل:')||'';if(comment.trim().length<3){toast('اكتب ملاحظة واضحة');return;}}
   try{var r=await fetch('/api/app/forms',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({action:action,document_id:documentId,comment:comment})});var j=await r.json();if(!r.ok||!j.ok)throw new Error(j.error||'ACTION_FAILED');toast(action==='approve'?'تم اعتماد الخطوة':action==='reject'?'تم رفض المستند':'تمت إعادة المستند للتعديل');renderApprovals();loadRemoteArchive();}catch(e){toast('تعذر تنفيذ الإجراء: '+(e.message||''));}
 }
 var workflowManagerData=null;
@@ -1413,7 +1414,7 @@ async function saveWorkflow(){
 }
 
 /* ── OPEN FORM (full page, WYSIWYG editable document) ── */
-function openForm(id){
+async function openForm(id){
   var f=allForms.find(function(x){return x.id===id;});
   if(!f) return;
   activeId=id; itemRows=0; selectedFormEmployee=null;
@@ -1441,7 +1442,7 @@ function openForm(id){
   // offer to restore an existing draft for this form
   var drafts=lsGet(draftKey(),{});
   if(drafts[id]){
-    if(confirm('توجد مسودّة محفوظة لهذا النموذج. هل تريد استعادتها؟')){
+    if(await appConfirm('توجد مسودّة محفوظة لهذا النموذج. هل تريد استعادتها؟')){
       applyState(drafts[id]);
       // always reflect the CURRENT department in the header (not the saved one)
       docDept=(currentDept?currentDept.name:docDept);
@@ -1496,8 +1497,8 @@ function clauseEdBox(id,title,isExtra){
 function syncClauseTitles(){
   clauseExtra.forEach(function(c){ var t=$('ct_'+c.id); if(t&&t.textContent.trim()) c.title=t.textContent.trim(); });
 }
-function addClause(){
-  var t=prompt('عنوان البند الجديد:','بند إضافي');
+async function addClause(){
+  var t=await appPrompt('عنوان البند الجديد:','بند إضافي');
   if(t===null) return;
   t=(t||'').trim(); if(!t) return;
   clauseSeq++;
@@ -1510,8 +1511,8 @@ function addClause(){
   scheduleSave&&scheduleSave();
   toast('تمت إضافة البند');
 }
-function removeClause(id){
-  if(!confirm('حذف هذا البند نهائياً من هذا المستند؟')) return;
+async function removeClause(id){
+  if(!await appConfirm('حذف هذا البند نهائياً من هذا المستند؟')) return;
   syncClauseTitles();
   var snap=snapshotInputs();
   var i=-1; clauseExtra.forEach(function(c,k){ if(c.id===id) i=k; });
@@ -2088,15 +2089,15 @@ function firstDateField(f){
   return found;
 }
 /* add a custom field to a section (#4 إضافة خيار جديد) */
-function addField(secKey){
-  var lbl=prompt('اسم الخانة الجديدة:');
+async function addField(secKey){
+  var lbl=await appPrompt('اسم الخانة الجديدة:');
   if(!lbl||!lbl.trim()) return;
-  var typeChoice=prompt('نوع الخانة: اكتب 1 لنص، 2 لتاريخ، 3 لقائمة اختيار، 4 لنص طويل','1');
+  var typeChoice=await appPrompt('نوع الخانة: اكتب 1 لنص، 2 لتاريخ، 3 لقائمة اختيار، 4 لنص طويل','1');
   var type='text';
   if(typeChoice==='2') type='date'; else if(typeChoice==='3') type='select'; else if(typeChoice==='4') type='textarea';
   var fld={type:type,label:lbl.trim(),id:'x_'+Date.now(),req:false};
   if(type==='select'){
-    var opts=prompt('اكتب الخيارات مفصولة بفاصلة (،)','خيار 1، خيار 2');
+    var opts=await appPrompt('اكتب الخيارات مفصولة بفاصلة (،)','خيار 1، خيار 2');
     fld.options=(opts||'').split(/[،,]/).map(function(s){return s.trim();}).filter(Boolean);
     if(!fld.options.length) fld.options=['خيار 1'];
   }

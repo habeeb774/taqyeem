@@ -702,6 +702,7 @@ img{max-width:100%;}
   
   @page{size:A4 landscape;margin:8mm;}
 }</style>
+<script src="/app-dialog.js"></script>
 </head>
 <body class="auth-pending">
 <div id="pgLogin" class="lg-stage">
@@ -1117,8 +1118,8 @@ function initDash(){
   var dt=$('dTitle'); if(dt) dt.textContent=(cu.id===HUNAINI_ID?'تقييم إدارة الموارد البشرية':'تقييم أداء الموظفين');
   buildNav();renderGrid();dAlertShow();guideShow();
 }
-function doLogout(){
-  if(!confirm('هل تريد تسجيل الخروج؟'))return;
+async function doLogout(){
+  if(!await appConfirm('هل تريد تسجيل الخروج؟'))return;
   svEv(cu.id,evals);
   cu=null;evals={};allE=[];vis=[];selId=null;
   hide('pgDash');
@@ -1481,8 +1482,8 @@ function eCancel(i){
   t.parentNode.style.display='';
   w.style.display='none';eb.style.display='flex';sb.style.display='none';
 }
-function eDel(i){
-  if(!confirm('حذف «'+_ed[i].name+'»؟'))return;
+async function eDel(i){
+  if(!await appConfirm('حذف «'+_ed[i].name+'»؟'))return;
   _ed.splice(i,1);_commit();_eRender();toast('تم الحذف');
 }
 function eAdd(){
@@ -1764,8 +1765,8 @@ function crAdd(){
   crRender();
   setTimeout(function(){var l=$('crList').children;var last=l[l.length-1];if(last&&last.children[1])last.children[1].focus();},40);
 }
-function crReset(){
-  if(!confirm('استعادة المعايير الافتراضية لـ «'+_crName+'»؟')) return;
+async function crReset(){
+  if(!await appConfirm('استعادة المعايير الافتراضية لـ «'+_crName+'»؟')) return;
   delete CC[_crName];
   svCrt(cu.id,CC);
   _crList=getCriteria(_crName).map(function(c){return {key:c.key,text:c.text,hint:c.hint||''};});
@@ -1863,8 +1864,8 @@ function tgApply(){
   }
   var fld=$('tgFT'); if(fld) fld.classList.toggle('edited', !!_tg.edited);
 }
-function tgUnlock(){
-  var w=prompt('لماذا قمت بتعديل الهدف المطلوب؟');
+async function tgUnlock(){
+  var w=await appPrompt('لماذا قمت بتعديل الهدف المطلوب؟');
   if(w===null) return;
   if(!String(w).trim()){ toast('يجب ذكر سبب التعديل'); return; }
   _tg.unlock=true; _tg.edited=true; _tg.why=String(w).trim();

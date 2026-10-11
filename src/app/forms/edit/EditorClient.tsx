@@ -1,4 +1,5 @@
 'use client';
+import { appConfirm } from '@/lib/app-dialog';
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Button, EmptyState, Field, Input, Modal, Select, Textarea } from '@/components/ui';
@@ -329,8 +330,8 @@ export function EditorClient({
     });
   }
 
-  function removeClause(id: string) {
-    if (!confirm('حذف هذا البند نهائياً من هذا المستند؟')) return;
+  async function removeClause(id: string) {
+    if (!await appConfirm('حذف هذا البند نهائياً من هذا المستند؟')) return;
     update((s) => {
       const isExtra = (s.clauseExtra || []).some((c) => c.id === id);
       const hiddenFields = { ...s.hiddenFields };

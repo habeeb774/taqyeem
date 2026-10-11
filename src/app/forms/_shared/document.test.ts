@@ -23,7 +23,7 @@ function loadLegacy() {
       Object.assign(window, {
         fetch: async () => ({ ok: true, status: 200, json: async () => ({ ok: true, templates: [], documents: [], permissions: [] }) }),
         requestAnimationFrame: () => 0,
-        confirm: () => false,
+        appConfirm: async () => false,
         alert: () => undefined,
       });
     },
@@ -85,13 +85,13 @@ describe('buildDocumentHtml parity for document-level edits', () => {
     run('allForms = FORMS.slice()');
     run(`openForm(${JSON.stringify(id)})`);
     // addField() and addClause() read their answers from prompt(); answer them in order.
-    run(`(function(){ var answers=['خانة إضافية','1']; window.prompt=function(){ return answers.shift(); }; })()`);
-    run("addField('sec0')");
-    run(`(function(){ var answers=['بند جديد']; window.prompt=function(){ return answers.shift(); }; window.confirm=function(){ return true; }; })()`);
-    run(`if (hasBoxedClauses(allForms.find(function(x){return x.id===activeId;}))) { addClause();
+    run(`(function(){ var answers=['خانة إضافية','1']; window.appPrompt=async function(){ return answers.shift(); }; })()`);
+    await run("addField('sec0')");
+    run(`(function(){ var answers=['بند جديد']; window.appPrompt=async function(){ return answers.shift(); }; window.appConfirm=async function(){ return true; }; })()`);
+    await run(`(async function(){if (hasBoxedClauses(allForms.find(function(x){return x.id===activeId;}))) { await addClause();
       var boxed=(allForms.find(function(x){return x.id===activeId;}).sections||[]).find(function(s){return s.boxed;});
-      if (boxed) removeClause(boxed.fields[0].id);
-      }`);
+      if (boxed) await removeClause(boxed.fields[0].id);
+      }})()`);
     const firstField = (form.sections || []).flatMap((s) => s.fields || []).find((f) => f.type !== 'date');
     if (firstField) run(`labelOverrides[${JSON.stringify(firstField.id)}]='اسم معدّل'`);
     const textarea = (form.sections || []).flatMap((s) => s.fields || []).find((f) => f.type === 'textarea' || (form.sections || []).some((s) => s.free));

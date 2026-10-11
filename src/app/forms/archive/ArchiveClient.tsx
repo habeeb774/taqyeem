@@ -1,4 +1,5 @@
 'use client';
+import { appConfirm } from '@/lib/app-dialog';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Button, EmptyState, Input, Table, TableCell, TableHeadCell, TableRow } from '@/components/ui';
@@ -76,7 +77,7 @@ export function ArchiveClient({ canCancel, canArchive, canDelete }: { canCancel:
   }
 
   async function remove(doc: ArchiveDocument) {
-    if (!confirm(`حذف المستند ${doc.document_no} من الأرشيف؟`)) return;
+    if (!await appConfirm(`حذف المستند ${doc.document_no} من الأرشيف؟`)) return;
     setBusyId(doc.id);
     try {
       await formsApi(`/api/app/forms?document_no=${encodeURIComponent(doc.document_no)}`, { method: 'DELETE' });
