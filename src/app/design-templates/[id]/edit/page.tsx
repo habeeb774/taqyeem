@@ -398,6 +398,7 @@ export default function EditorPage() {
     if (e.button !== 0 || drag.current) return;
     const f = fields[index];
     if (f.is_locked) return;
+    (e.currentTarget as HTMLElement).closest<HTMLElement>(".de-layer")?.focus({ preventScroll: true });
     setSelected(index);
     pushHistory();
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
@@ -685,6 +686,9 @@ export default function EditorPage() {
                       <div
                         key={f.id || f.field_key}
                         data-design-text
+                        tabIndex={0}
+                        aria-label={f.layer_name}
+                        onFocus={() => setSelected(i)}
                         className={`de-layer ${selected === i ? "selected" : ""} ${f.is_locked ? "locked" : ""}`}
                         onPointerDown={(e) => pointerDown(e, i, "move")}
                         onClick={(e) => {
