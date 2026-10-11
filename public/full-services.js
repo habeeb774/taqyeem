@@ -220,7 +220,7 @@
   function hydrateState(){
     var d=A.data||{};allE=(d.employees||[]).filter(function(e){return ['terminated','resigned'].indexOf(e.status)<0;}).map(function(e){return {id:String(e.id),name:e.full_name,job:(e.job_titles&&e.job_titles.name)||'',job_title_id:e.job_title_id,manager_id:e.manager_id,branch_id:e.branch_id,department_id:e.department_id,section_id:e.section_id,status:e.status};});
     CT={};allE.forEach(function(e){CT[e.name]=e.job||'';});vis=allE.slice();evals={};CS={};A.evaluationIds={};A.evaluationStatus={};
-    (d.evaluations||[]).filter(function(x){return String(x.cycle_id)===String(currentCycleId());}).forEach(function(x){evals[x.employee_id]=evals[x.employee_id]||{};if(x.final_score!=null)evals[x.employee_id]._score=Number(x.final_score);evals[x.employee_id].notes=x.notes||'';A.evaluationIds[x.employee_id]=x.id;A.evaluationStatus[x.employee_id]=x.status;});
+    (d.evaluations||[]).filter(function(x){return String(x.cycle_id)===String(currentCycleId());}).forEach(function(x){evals[x.employee_id]=evals[x.employee_id]||{};if(x.final_score!=null)evals[x.employee_id]._score=Number(x.final_score);evals[x.employee_id]._draft=x.status==='draft';evals[x.employee_id].notes=x.notes||'';A.evaluationIds[x.employee_id]=x.id;A.evaluationStatus[x.employee_id]=x.status;});
     (d.targets||[]).filter(function(x){return String(x.cycle_id)===String(currentCycleId());}).forEach(function(x){evals[x.employee_id]=Object.assign(evals[x.employee_id]||{},{tgt:Number(x.target_amount),got:Number(x.achieved_amount),why:x.last_edit_reason||'',edited:!!x.last_edit_reason,tDoneAt:x.updated_at||''});});
     var pens={};(d.penalties||[]).forEach(function(p){pens[p.id]=p.code;});
     (A.cycleData&&A.cycleData.attendance||[]).forEach(function(a){var st={};(A.cycleData.attendanceEntries||[]).filter(function(e){return e.attendance_evaluation_id===a.id;}).forEach(function(e){var code=pens[e.penalty_type_id];if(code)st[code]=Number(e.occurrences||0);});evals[a.employee_id]=Object.assign(evals[a.employee_id]||{},{att:st,notes:a.notes||'',doneAt:a.updated_at||'',_attendanceScore:Number(a.final_score)});});
@@ -229,7 +229,7 @@
   }
 
   var _origCalcScore=calcScore;
-  calcScore=function(ev,n){if(ev&&ev._score!=null)return Number(ev._score);return _origCalcScore(ev,n);};
+  calcScore=function(ev,n){if(ev&&ev._draft)return null;if(ev&&ev._score!=null)return Number(ev._score);return _origCalcScore(ev,n);};
   isBranchUser=function(){return role('branch_manager');};
   hasTarget=function(n){return !role('hr_admin')&&can('targets.manage')&&(isSeller(n)||isBranchMgr(n));};
   modeFor=function(){return role('hr_admin')&&can('attendance.manage')?'attend':'criteria';};
@@ -249,13 +249,13 @@
   };
 
   /* ---------- Grid: same cards/styles, permission-aware ---------- */
-  function cardButton(emp,md,done){var eid=idjs(emp.id);if(md==='attend'&&!done)return '<div class="ec-two"><button class="ec-btn" onclick="startEval('+eid+','+idjs('attend')+')">تقييم</button><button class="ec-btn full" onclick="fullMark('+eid+')" title="درجة كاملة 100">100</button></div>';return '<button class="ec-btn'+(done?' ghost':'')+'" onclick="startEval('+eid+','+idjs(md)+')">'+(done?'عرض / إعادة التقييم':'بدء التقييم')+'</button>';}
+  function cardButton(emp,md,done){var eid=idjs(emp.id);if(md==='attend'&&!done)return '<div class="ec-two"><button class="ec-btn" onclick="startEval('+eid+','+idjs('attend')+')">تقييم</button><button class="ec-btn full" onclick="fullMark('+eid+')" title="درجة كاملة 100">100</button></div>';return '<button class="ec-btn'+(done?' ghost':'')+'" onclick="startEval('+eid+','+idjs(md)+')">'+(done?'عرض / إعادة التقييم':((evals[emp.id]||{})._draft?'استكمال التقييم':'بدء التقييم'))+'</button>';}
   empCard=function(emp,md){
     var st=stOf(emp.name),off=!!st;md=md||modeFor(emp.name);var ev=evals[emp.id]||{};var val=null,tone='none',badge='—',unit='',sub='',extra='';
     if(!off){if(md==='target'){val=targetPct(ev);tone=pctTone(val);if(val!==null){badge=val;unit='%';sub=val>=100?'حقّق الهدف':'دون الهدف';if(ev.got!=null&&ev.tgt!=null)extra=(ev.got-ev.tgt>=0?'+':'')+fmtNum(ev.got-ev.tgt)+' ريال';}}else if(md==='attend'){val=ev._attendanceScore!=null?Number(ev._attendanceScore):attendScore(ev);tone=attTone(val);if(val!==null){badge=val;sub=attLabel(val);}}else{val=calcScore(ev,emp.name);tone=scoreTone(val);if(val!==null){badge=val;sub=scoreLabel(val);}}}
     var done=val!==null,fill=done?(md==='target'?Math.min(100,val):(md==='attend'?val:(val-1)/4*100)):0,over=(md==='target'&&done&&val>100)?Math.min(100,val-100):0;var esn=h(emp.name).replace(/'/g,"\\'");var c=document.createElement('div');c.className='emp-card'+(done?' t-'+tone:'')+(off?' emp-off':'');
     var flags=can('evaluations.edit')?'<div class="ec-flags"><button class="ec-flag'+(st==='leave'?' on':'')+'" onclick="setSt(\''+esn+'\',\'leave\')" title="الموظف في إجازة"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span>إجازة</span></button><button class="ec-flag'+(st==='branch'?' on':'')+'" onclick="setSt(\''+esn+'\',\'branch\')"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-3-3.87"/><path d="M4 21v-2a4 4 0 0 1 3-3.87"/><circle cx="12" cy="7" r="4"/></svg><span>'+flagShort()+'</span></button></div>':'';
-    c.innerHTML='<div class="ec-top">'+flags+'<div class="ec-badge'+(done?'':' pend')+(md==='target'&&done?' sm':'')+'">'+badge+(unit?'<i>'+unit+'</i>':'')+'</div></div><div class="ec-name">'+h(emp.name)+'</div><div class="ec-title">'+(h(emp.job)||'&nbsp;')+'</div><div class="ec-row"><span class="ec-status'+(off?' off':(done?'':' pend'))+'">'+(off?(st==='leave'?'في إجازة':flagTitle()):(done?sub:'بانتظار التقييم'))+'</span>'+(extra?'<span class="ec-diff">'+h(extra)+'</span>':'')+'</div><div class="ec-bar"><i style="width:'+fill.toFixed(0)+'%"></i>'+(over?'<u style="width:'+over.toFixed(0)+'%"></u>':'')+'</div>'+(off?'<button class="ec-btn ghost" onclick="setSt(\''+esn+'\',\''+st+'\')">إلغاء الاستبعاد</button>':cardButton(emp,md,done));return c;
+    c.innerHTML='<div class="ec-top">'+flags+'<div class="ec-badge'+(done?'':' pend')+(md==='target'&&done?' sm':'')+'">'+badge+(unit?'<i>'+unit+'</i>':'')+'</div></div><div class="ec-name">'+h(emp.name)+'</div><div class="ec-title">'+(h(emp.job)||'&nbsp;')+'</div><div class="ec-row"><span class="ec-status'+(off?' off':(done?'':' pend'))+'">'+(off?(st==='leave'?'في إجازة':flagTitle()):(done?sub:(ev._draft?'مسودة · بانتظار الإرسال':'بانتظار التقييم')))+'</span>'+(extra?'<span class="ec-diff">'+h(extra)+'</span>':'')+'</div><div class="ec-bar"><i style="width:'+fill.toFixed(0)+'%"></i>'+(over?'<u style="width:'+over.toFixed(0)+'%"></u>':'')+'</div>'+(off?'<button class="ec-btn ghost" onclick="setSt(\''+esn+'\',\''+st+'\')">إلغاء الاستبعاد</button>':cardButton(emp,md,done));return c;
   };
 
   var EVAL_SECTION_KEY='taqyeem_eval_section';
@@ -299,7 +299,7 @@
     reopeningCycle=true;var button=$('resetAllEvalsButton');if(button)button.disabled=true;
     try{
       var result=await api('/api/app/evaluations',{method:'POST',body:{action:'reopen_cycle',cycle_id:currentCycleId(),reason:reason.trim()}});
-      await selectCycle(A.cycle);toast(result.count?'تمت إعادة فتح '+result.count+' تقييم':'لا توجد تقييمات تحتاج إعادة فتح');
+      await selectCycle(A.cycle);toast(result.count?'تمت إعادة فتح '+result.count+' تقييم':'التقييمات مفتوحة بالفعل، اضغط استكمال التقييم');
     }catch(e){toast(humanError(e.message));}
     finally{reopeningCycle=false;if(button)button.disabled=false;}
   };
