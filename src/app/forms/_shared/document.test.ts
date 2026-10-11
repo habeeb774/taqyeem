@@ -88,7 +88,10 @@ describe('buildDocumentHtml parity for document-level edits', () => {
     run(`(function(){ var answers=['خانة إضافية','1']; window.prompt=function(){ return answers.shift(); }; })()`);
     run("addField('sec0')");
     run(`(function(){ var answers=['بند جديد']; window.prompt=function(){ return answers.shift(); }; window.confirm=function(){ return true; }; })()`);
-    run('if (hasBoxedClauses(allForms.find(function(x){return x.id===activeId;}))) { addClause(); var boxed=(allForms.find(function(x){return x.id===activeId;}).sections||[]).find(function(s){return s.boxed;}); if (boxed) removeClause(boxed.fields[0].id); }');
+    run(`if (hasBoxedClauses(allForms.find(function(x){return x.id===activeId;}))) { addClause();
+      var boxed=(allForms.find(function(x){return x.id===activeId;}).sections||[]).find(function(s){return s.boxed;});
+      if (boxed) removeClause(boxed.fields[0].id);
+      }`);
     const firstField = (form.sections || []).flatMap((s) => s.fields || []).find((f) => f.type !== 'date');
     if (firstField) run(`labelOverrides[${JSON.stringify(firstField.id)}]='اسم معدّل'`);
     const textarea = (form.sections || []).flatMap((s) => s.fields || []).find((f) => f.type === 'textarea' || (form.sections || []).some((s) => s.free));

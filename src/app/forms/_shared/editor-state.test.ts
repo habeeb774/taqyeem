@@ -61,7 +61,12 @@ describe('React editor state parity with the legacy editor', () => {
     run(`openForm(${JSON.stringify(id)})`);
     run(`EMPLOYEES = [mapEmployee(${JSON.stringify(employee)})]`);
     // Legacy empPick from the name field: sets name + number, then empAutofill.
-    run(`(function(){ var n=$('f_emp_name'); if(n) n.value=${JSON.stringify(employee.full_name)}; var no=$('f_emp_no'); if(no) no.value=${JSON.stringify(employee.employee_number)}; empAutofill(${JSON.stringify(employee.full_name)}); })()`);
+    run(`(function(){ var n=$('f_emp_name');
+      if(n) n.value=${JSON.stringify(employee.full_name)};
+      var no=$('f_emp_no');
+      if(no) no.value=${JSON.stringify(employee.employee_number)};
+      empAutofill(${JSON.stringify(employee.full_name)});
+      })()`);
     const legacy = run('docHtml()') as string;
     const start = initialState(id, form);
     const state = { ...start, inputs: { ...start.inputs, ...employeeAutofill(form, start, employee, 'emp_name') } };

@@ -3,6 +3,8 @@
 // in src/templates/forms.html and must produce the same markup, so both share
 // public/forms-print.css. Keep the two in sync until the legacy editor is retired.
 
+import { resolveDocumentFont } from './document-fonts';
+
 export type FieldDef = {
   id: string;
   label: string;
@@ -191,14 +193,18 @@ export function buildDocumentHtml(
   const docNo = options.documentNo || '';
   const dept = state.docDept || options.deptFallback || 'الإدارة';
   const title = state.docTitle || form.name || '';
-  const font = state.font || DEFAULT_FONT;
+  const font = resolveDocumentFont(state.font || DEFAULT_FONT);
 
   let html = `<div class="doc doc-${options.formId}" style="font-family:${font}">`;
   const dateChip =
     dateFieldId || docNo
-      ? `<div class="hd-date">${dateFieldId ? `<div class="hd-date-val">${dateFieldVal || '__________'}</div>` : ''}${docNo ? `<div class="hd-docno">${docNo}</div>` : ''}</div>`
+      ? '<div class="hd-date">' +
+        (dateFieldId ? `<div class="hd-date-val">${dateFieldVal || '__________'}</div>` : '') +
+        (docNo ? `<div class="hd-docno">${docNo}</div>` : '') + '</div>'
       : '<div class="hd-date"></div>';
-  html += `<div class="hd hd-centered hdst-${PAGE.style}"><div class="hd-row"><div class="hd-dept-wrap"><div class="hd-dept">${dept}</div><div class="hd-company">شركة السويد التجارية</div></div><div class="hd-logo-wrap"><img class="hd-logo" src="${LOGO_URL}" alt=""></div>${dateChip}</div></div>`;
+  html += `<div class="hd hd-centered hdst-${PAGE.style}"><div class="hd-row"><div class="hd-dept-wrap">` +
+    `<div class="hd-dept">${dept}</div><div class="hd-company">شركة السويد التجارية</div></div>` +
+    `<div class="hd-logo-wrap"><img class="hd-logo" src="${LOGO_URL}" alt=""></div>${dateChip}</div></div>`;
   html += `<div class="doc-title"><h1>${title}</h1></div>`;
 
   (form.sections || []).forEach((sec, si) => {
@@ -341,7 +347,11 @@ function pageCss() {
 /** Full standalone HTML page for a document (the legacy doPrint() frame contents). */
 export function buildPrintPage(inner: string, title: string) {
   const safeTitle = title.replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim() || 'مستند';
-  return `<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>${safeTitle}</title><link rel="stylesheet" href="/forms-print.css"><style>${pageCss()}</style></head><body><div class="pp-foot-fixed">${footerHtml()}</div><div id="pp-fit"><table class="pp-sheet"><thead><tr><td class="pp-top"></td></tr></thead><tfoot><tr><td class="pp-bot"></td></tr></tfoot><tbody><tr><td>${inner}</td></tr></tbody></table></div></body></html>`;
+  return '<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8">' +
+    `<title>${safeTitle}</title><link rel="stylesheet" href="/forms-print.css"><style>${pageCss()}</style></head>` +
+    `<body><div class="pp-foot-fixed">${footerHtml()}</div><div id="pp-fit"><table class="pp-sheet">` +
+    '<thead><tr><td class="pp-top"></td></tr></thead><tfoot><tr><td class="pp-bot"></td></tr></tfoot>' +
+    `<tbody><tr><td>${inner}</td></tr></tbody></table></div></body></html>`;
 }
 
 /** Prints a page built by buildPrintPage through a hidden iframe, after its fonts and CSS load. */

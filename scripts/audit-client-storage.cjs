@@ -5,6 +5,7 @@ const allowedSessionKeys = [
   'taqyeem_cycle_id',
   'taqyeem_view_state',
   'taqyeem_assessment_view',
+  'taqyeem_eval_section',
 ];
 const forbiddenDataWords = [
   'employees', 'evaluations', 'targets', 'attendance', 'branches', 'departments',

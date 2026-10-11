@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Button, EmptyState, Field, Input, Modal, Select, Textarea } from '@/components/ui';
 import { formsApi, useToast } from '../_shared/client';
+import { resolveDocumentFont } from '../_shared/document-fonts';
 import {
   buildDocumentHtml,
   buildPrintPage,
@@ -367,7 +368,7 @@ export function EditorClient({
           <Row label="عنوان المستند"><Input value={state.docTitle || ''} onChange={(e) => update({ docTitle: e.target.value })} /></Row>
           <Row label="الإدارة"><Input value={state.docDept || ''} onChange={(e) => update({ docDept: e.target.value })} /></Row>
           <Row label="خط المستند">
-            <Select value={state.font || DOC_FONTS[0][0]} onChange={(e) => update({ font: e.target.value })}>
+            <Select value={resolveDocumentFont(state.font)} onChange={(e) => update({ font: e.target.value })}>
               {DOC_FONTS.map(([fam, label]) => <option key={fam} value={fam}>{label}</option>)}
             </Select>
           </Row>

@@ -2,6 +2,7 @@
 // the legacy editor saved (captureState in src/templates/forms.html), so drafts
 // and archived documents open in either editor.
 import { DEFAULT_SIGNATURES, FALLBACK_SIGNATURES } from './default-signatures';
+import { DOC_FONTS } from './document-fonts';
 import type { FieldDef, FormDefinition, FormState } from './document';
 
 export type Employee = {
@@ -16,25 +17,7 @@ export type Employee = {
   manager_name?: string | null;
 };
 
-// Same list as DOC_FONTS in the legacy editor, so documents saved with any of them keep their font.
-export const DOC_FONTS: [string, string][] = [
-  ["'TSans-Light'", 'Sans خفيف'],
-  ["'TSans-Regular'", 'Sans عادي'],
-  ["'TSans-Medium'", 'Sans متوسط'],
-  ["'TSans-Bold'", 'Sans عريض'],
-  ["'TSans-Black'", 'Sans أسود'],
-  ["'TDisp-Light'", 'Serif Display خفيف'],
-  ["'TDisp-Regular'", 'Serif Display عادي'],
-  ["'TDisp-Medium'", 'Serif Display متوسط'],
-  ["'TDisp-Bold'", 'Serif Display عريض'],
-  ["'TDisp-Black'", 'Serif Display أسود'],
-  ["'TText-Light'", 'Serif Text خفيف'],
-  ["'TText-Regular'", 'Serif Text عادي'],
-  ["'TText-Medium'", 'Serif Text متوسط'],
-  ["'TText-Bold'", 'Serif Text عريض'],
-  ["'TText-Black'", 'Serif Text أسود'],
-  ["'Alexandria'", 'Alexandria'],
-];
+export { DOC_FONTS } from './document-fonts';
 
 // The legacy editor hard-codes the HR department and the HR-HB number prefix.
 export const DEFAULT_DEPT = 'إدارة الموارد البشرية';
