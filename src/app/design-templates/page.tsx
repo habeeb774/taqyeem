@@ -6,6 +6,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { DesignShell, designApi } from '@/components/design-shell';
 import { Badge, Button, EmptyState, Field, Input, Modal, Select, Textarea } from '@/components/ui';
 
+import { CatalogDialog } from './_components/catalog-dialog';
+
 type Template = {
   id: string;
   name: string;
@@ -48,6 +50,7 @@ export default function DesignsPage() {
   const [permissions, setPermissions] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState(false);
+  const [catalogDialog, setCatalogDialog] = useState<'font' | 'category' | null>(null);
   const [view, setView] = useState<ViewMode>('grid');
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
@@ -169,50 +172,6 @@ export default function DesignsPage() {
     }
   }
 
-  async function addCategory() {
-    const name = prompt('اسم التصنيف الجديد:')?.trim();
-    if (!name) return;
-
-    try {
-      await designApi('/api/design-categories', {
-        method: 'POST',
-        body: JSON.stringify({ name }),
-      });
-
-      const response = await designApi('/api/design-categories');
-      setCategories(response.categories);
-      setToast('تمت إضافة التصنيف');
-    } catch (error: any) {
-      setToast(error.message);
-    }
-  }
-
-  async function addFont() {
-    const name = prompt('اسم الخط:')?.trim();
-    if (!name) return;
-
-    const family = prompt('Font Family:', name)?.trim();
-    if (!family) return;
-
-    const url = prompt('رابط ملف أو CSS للخط (اختياري):')?.trim() || null;
-
-    try {
-      await designApi('/api/design-fonts', {
-        method: 'POST',
-        body: JSON.stringify({
-          name,
-          family,
-          source: url ? 'custom' : 'system',
-          url,
-          is_default: false,
-        }),
-      });
-      setToast('تمت إضافة الخط');
-    } catch (error: any) {
-      setToast(error.message);
-    }
-  }
-
   return (
     <DesignShell>
       <main className="ds-main">
@@ -224,13 +183,13 @@ export default function DesignsPage() {
 
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             {!browseForUse && can('design_templates.manage_categories') && (
-              <Button variant="ghost" size="sm" onClick={addCategory}>
+              <Button variant="ghost" size="sm" onClick={() => setCatalogDialog('category')}>
                 إضافة تصنيف
               </Button>
             )}
 
             {!browseForUse && can('design_templates.manage_fonts') && (
-              <Button variant="ghost" size="sm" onClick={addFont}>
+              <Button variant="ghost" size="sm" onClick={() => setCatalogDialog('font')}>
                 إضافة خط
               </Button>
             )}
@@ -438,6 +397,14 @@ export default function DesignsPage() {
           </div>
         </form>
       </Modal>
+
+      {catalogDialog && <CatalogDialog kind={catalogDialog} onClose={() => setCatalogDialog(null)} onSaved={async () => {
+        if (catalogDialog === 'category') {
+          const response = await designApi('/api/design-categories');
+          setCategories(response.categories);
+        }
+        setToast(catalogDialog === 'font' ? 'تمت إضافة الخط' : 'تمت إضافة التصنيف');
+      }} />}
 
       {toast && <div className="ds-toast">{toast}</div>}
     </DesignShell>
