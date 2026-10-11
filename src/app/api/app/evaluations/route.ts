@@ -15,6 +15,7 @@ import {
   recomputeEvaluation,
 } from "@/db/queries/evaluations";
 import { withNeonTransaction } from "@/lib/neon/admin";
+import { reopenCycleEvaluations } from '@/server/reopen-cycle-evaluations';
 
 const answerSchema = z.object({
   criterion_id: z.string().uuid(),
@@ -205,6 +206,10 @@ export async function POST(req: NextRequest) {
     const c = await requireUser();
     const b = await req.json();
     const action = String(b?.action || "");
+    if (action === 'reopen_cycle') {
+      const count = await reopenCycleEvaluations(c, b);
+      return NextResponse.json({ ok: true, count });
+    }
 
     if (action === "ensure") {
       must(c, "evaluations.edit");

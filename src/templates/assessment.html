@@ -787,7 +787,7 @@ img{max-width:100%;}
     <button class="btn" onclick="exportExcel()" style="background:#16a34a;color:#fff;border:none">
       <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>تصدير Excel
     </button>
-    <button class="btn btn-d" onclick="resetAllEvals()">
+    <button id="resetAllEvalsButton" class="btn btn-d" style="display:none" onclick="resetAllEvals()">
       <svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.95"/></svg>إعادة تقييم الكل
     </button>
   </div>
@@ -1258,13 +1258,7 @@ function updateStats(){
   $('stAvg').textContent=avg+(main==='target'?'%':'');
   $('stAvgL').textContent=(main==='target'?'متوسط التحقيق':(main==='attend'?attLabel(avg):scoreLabel(avg)));
 }
-function resetAllEvals(){
-  /* المستبعدون غير محسوبين */
-  const done=allE.filter(e=>Object.keys(evals[e.id]?.answers||{}).length).length;
-  if(!done){toast('لا توجد تقييمات محفوظة');return;}
-  if(!confirm(`سيتم حذف ${done} تقييم. هل أنت متأكد؟`))return;
-  allE.forEach(e=>{evals[e.id]={};});svEv(cu.id,evals);renderGrid();toast('تم حذف جميع التقييمات');
-}
+function resetAllEvals(){toast('جارٍ تحميل صلاحيات النظام، حاول بعد لحظة');}
 
 /* NOTICE */
 /* EVAL */

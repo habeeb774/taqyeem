@@ -240,6 +240,7 @@
     if(!A.cycle){var cs=A.data.cycles||[],saved=cyclePref();A.cycle=cs.find(function(c){return String(c.id)===String(saved);})||latestCycle();if(A.cycle&&!fromCycleLoad){selectCycle(A.cycle);return;}}
     hydrateState();pg('pgDash','column');$('pgDash').style.minHeight='100vh';$('tbUser').textContent='المُقيِّم: '+cu.name;
     var dt=$('dTitle');if(dt)dt.textContent=role('super_admin')?'لوحة تحكم الإدارة':(role('hr_admin')&&can('attendance.manage')?'تقييم إدارة الموارد البشرية':'تقييم أداء الموظفين');
+    var resetButton=resetAllEvalsButton;if(resetButton)resetButton.style.display=role('super_admin')&&can('evaluations.reopen')?'':'none';
     renderCyclePicker();installToolbarButtons();renderGrid();dAlertShow();
     if(!entryTaskHandled){
       entryTaskHandled=true;var task=new URLSearchParams(location.search).get('task');
@@ -287,7 +288,21 @@
     catch(err){toast(humanError(err.message));}
   };
 
-  resetAllEvals=function(){toast('الحذف الجماعي للتقييمات معطّل لحماية السجل. استخدم إعادة فتح التقييم من قسم المراجعة.');};
+  var reopeningCycle=false;
+  resetAllEvals=async function(){
+    if(!role('super_admin')||!can('evaluations.reopen')){toast('هذه العملية لمدير النظام فقط');return;}
+    if(reopeningCycle||!currentCycleId())return;
+    var reason=prompt('سبب إعادة فتح تقييمات الدورة المختارة (سيتم الاحتفاظ بالإجابات والدرجات):');
+    if(reason===null)return;
+    if(reason.trim().length<3){toast('اكتب سببًا واضحًا');return;}
+    if(!confirm('إعادة فتح جميع التقييمات المرسلة والمعتمدة والمنشورة في هذه الدورة؟'))return;
+    reopeningCycle=true;var button=$('resetAllEvalsButton');if(button)button.disabled=true;
+    try{
+      var result=await api('/api/app/evaluations',{method:'POST',body:{action:'reopen_cycle',cycle_id:currentCycleId(),reason:reason.trim()}});
+      await selectCycle(A.cycle);toast(result.count?'تمت إعادة فتح '+result.count+' تقييم':'لا توجد تقييمات تحتاج إعادة فتح');
+    }catch(e){toast(humanError(e.message));}
+    finally{reopeningCycle=false;if(button)button.disabled=false;}
+  };
 
   /* ---------- Evaluations ---------- */
   var _criteriaMeta={};
