@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { readFileSync } from 'node:fs';
 import { drawDesignField, loadDesignFonts, type DesignTextField } from './design-renderer';
 
 const field: DesignTextField = {
@@ -19,6 +20,30 @@ function context() {
 }
 
 describe('design canvas text layout', () => {
+  it.each(['Alexandria', 'Cairo', 'Tajawal', 'IBM Plex Sans Arabic', 'Noto Kufi Arabic', 'Noto Naskh Arabic'])(
+    'loads %s locally under the production content security policy', async (family) => {
+      const load = vi.fn().mockResolvedValue([]);
+      Object.defineProperty(document, 'fonts', { configurable: true, value: { ready: Promise.resolve(), load } });
+      const slug = family.toLowerCase().replaceAll(' ', '-');
+      const id = `bundled-${slug}`;
+      const pending = loadDesignFonts([{ ...field, font_family: family }], {}, [
+        { id, family, url: `https://fonts.googleapis.com/css2?family=${family}` },
+      ]);
+      const link = document.querySelector<HTMLLinkElement>(`link[data-design-font="${id}"]`)!;
+      expect(link.getAttribute('href')).toBe(`/fonts/design/${slug}.css`);
+      const css = readFileSync(`public/fonts/design/${slug}.css`, 'utf8');
+      expect(css).not.toContain('https://');
+      for (const resource of css.matchAll(/url\(([^)]+)\)/g)) {
+        const bytes = readFileSync(`public${resource[1]}`);
+        expect(bytes.subarray(0, 4).toString('hex')).toBe('00010000');
+      }
+      link.dispatchEvent(new Event('load'));
+      await pending;
+      expect(load).toHaveBeenCalledWith(`500 20px "${family}"`, '{{name}}');
+      link.remove();
+    },
+  );
+
   it('uses the stored distance from the right edge, for both Arabic and English text', () => {
     for (const direction of ['rtl', 'ltr']) {
       const ctx = context();

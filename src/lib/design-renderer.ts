@@ -46,7 +46,10 @@ export async function loadDesignFonts(
     if (existing?.sheet) return Promise.resolve();
     const link = existing || document.createElement('link');
     link.rel = 'stylesheet';
-    link.href = font.url!;
+    const bundledFamilies = ['Alexandria', 'Cairo', 'Tajawal', 'IBM Plex Sans Arabic', 'Noto Kufi Arabic', 'Noto Naskh Arabic'];
+    link.href = bundledFamilies.includes(font.family) && font.url!.startsWith('https://fonts.googleapis.com/')
+      ? `/fonts/design/${font.family.toLowerCase().replaceAll(' ', '-')}.css`
+      : font.url!;
     link.dataset.designFont = font.id;
     return new Promise<void>((resolve, reject) => {
       const finish = (success: boolean) => {

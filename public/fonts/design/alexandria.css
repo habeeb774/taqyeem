@@ -1,0 +1,42 @@
+@font-face {
+  font-family: 'Alexandria';
+  font-style: normal;
+  font-weight: 300;
+  font-display: swap;
+  src: url(/fonts/design/alexandria-f493309a6795.ttf) format('truetype');
+}
+@font-face {
+  font-family: 'Alexandria';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(/fonts/design/alexandria-21b1bd7d994b.ttf) format('truetype');
+}
+@font-face {
+  font-family: 'Alexandria';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url(/fonts/design/alexandria-4b3043056dbc.ttf) format('truetype');
+}
+@font-face {
+  font-family: 'Alexandria';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url(/fonts/design/alexandria-df20a9c19ca9.ttf) format('truetype');
+}
+@font-face {
+  font-family: 'Alexandria';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url(/fonts/design/alexandria-9063ada72421.ttf) format('truetype');
+}
+@font-face {
+  font-family: 'Alexandria';
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url(/fonts/design/alexandria-9df136196e84.ttf) format('truetype');
+}

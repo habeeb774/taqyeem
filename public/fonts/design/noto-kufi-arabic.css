@@ -1,0 +1,35 @@
+@font-face {
+  font-family: 'Noto Kufi Arabic';
+  font-style: normal;
+  font-weight: 300;
+  font-display: swap;
+  src: url(/fonts/design/noto-kufi-arabic-693b126e8283.ttf) format('truetype');
+}
+@font-face {
+  font-family: 'Noto Kufi Arabic';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(/fonts/design/noto-kufi-arabic-40445bc7084e.ttf) format('truetype');
+}
+@font-face {
+  font-family: 'Noto Kufi Arabic';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url(/fonts/design/noto-kufi-arabic-359ea9af3fdf.ttf) format('truetype');
+}
+@font-face {
+  font-family: 'Noto Kufi Arabic';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url(/fonts/design/noto-kufi-arabic-14c29af737bc.ttf) format('truetype');
+}
+@font-face {
+  font-family: 'Noto Kufi Arabic';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url(/fonts/design/noto-kufi-arabic-24b17f81d261.ttf) format('truetype');
+}
