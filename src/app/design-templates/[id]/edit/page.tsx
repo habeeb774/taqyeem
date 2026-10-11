@@ -11,6 +11,7 @@ import {
 import { useParams, useRouter } from "next/navigation";
 import { DesignShell, designApi } from "@/components/design-shell";
 import { loadDesignFonts } from "@/lib/design-renderer";
+import { moveDesignBox, resizeDesignBox, type DesignBox } from "@/lib/design-position";
 
 type Field = {
   id?: string;
@@ -141,6 +142,8 @@ export default function EditorPage() {
     saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null),
     drag = useRef<any>(null);
   const selectedField = selected == null ? null : fields[selected];
+  const latest = useRef({ fields, template });
+  latest.current = { fields, template };
   useEffect(() => {
     if (!fields.length || !fonts.length) return;
     let active = true;
@@ -203,9 +206,13 @@ export default function EditorPage() {
             fields: next,
           }),
         });
-        if (Array.isArray(response.fields))
-          setFields(response.fields.map(normalize));
-        setStatus("saved");
+        const changedWhileSaving = latest.current.fields !== next || latest.current.template !== meta;
+        // A response may arrive during a drag. Only merge assigned IDs, never older positions.
+        if (Array.isArray(response.fields)) {
+          const savedIds = new Map<string, string | undefined>(response.fields.map((field: Field) => [field.field_key, field.id]));
+          setFields((current) => current.map((field) => ({ ...field, id: savedIds.get(field.field_key) || field.id })));
+        }
+        setStatus(changedWhileSaving ? "dirty" : "saved");
       } catch (e: any) {
         setStatus("error");
         setMessage(e.message);
@@ -360,7 +367,7 @@ export default function EditorPage() {
         return;
       }
       if (
-        selected != null &&
+        selected != null && !fields[selected].is_locked &&
         ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key)
       ) {
         e.preventDefault();
@@ -371,7 +378,7 @@ export default function EditorPage() {
         pushHistory();
         setFields((a) =>
           a.map((f, i) =>
-            i === selected ? { ...f, x: f.x + dx, y: f.y + dy } : f,
+            i === selected ? { ...f, ...moveDesignBox(f, dx, dy, template) } : f,
           ),
         );
         setStatus("dirty");
@@ -387,6 +394,7 @@ export default function EditorPage() {
   ) {
     e.preventDefault();
     e.stopPropagation();
+    if (e.button !== 0 || drag.current) return;
     const f = fields[index];
     if (f.is_locked) return;
     setSelected(index);
@@ -401,29 +409,28 @@ export default function EditorPage() {
       y: f.y,
       w: f.width,
       h: f.height,
+      rotation: f.rotation,
+      zoom,
     };
   }
   function pointerMove(e: ReactPointerEvent) {
     const d = drag.current;
     if (!d) return;
-    const dx = (e.clientX - d.sx) / zoom,
-      dy = (e.clientY - d.sy) / zoom;
+    const dx = (e.clientX - d.sx) / d.zoom,
+      dy = (e.clientY - d.sy) / d.zoom;
+    const initial: DesignBox = { x: d.x, y: d.y, width: d.w, height: d.h, rotation: d.rotation };
+    const next = d.mode === "move"
+      ? moveDesignBox(initial, dx, dy, template)
+      : resizeDesignBox(initial, dx, dy);
     setFields((a) =>
       a.map((f, i) =>
         i === d.index
-          ? d.mode === "move"
-            ? { ...f, x: Math.round(d.x + dx), y: Math.round(d.y + dy) }
-            : {
-                ...f,
-                width: Math.max(20, Math.round(d.w - dx)),
-                height: Math.max(20, Math.round(d.h + dy)),
-              }
+          ? { ...f, ...next }
           : f,
       ),
     );
-    const f = fields[d.index],
-      cx = (d.mode === "move" ? d.x + dx : f.x) + f.width / 2,
-      cy = (d.mode === "move" ? d.y + dy : f.y) + f.height / 2;
+    const cx = next.x + next.width / 2,
+      cy = next.y + next.height / 2;
     setGuide({
       x: Math.abs(cx - template.width / 2) < 8 ? template.width / 2 : undefined,
       y:
@@ -650,6 +657,7 @@ export default function EditorPage() {
                 onPointerMove={pointerMove}
                 onPointerUp={pointerUp}
                 onPointerCancel={pointerUp}
+                onLostPointerCapture={pointerUp}
                 onClick={() => setSelected(null)}
                 style={{
                   width: template.width,
