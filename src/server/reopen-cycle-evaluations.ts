@@ -20,7 +20,7 @@ export async function reopenCycleEvaluations(context: SecurityContext, input: un
     const previous = await tx.query(
       `select ev.id, ev.status from public.evaluations ev
        join public.employees emp on emp.id=ev.employee_id
-       where ev.evaluation_cycle_id=$1::uuid and emp.organization_id=$2::uuid
+       where ev.cycle_id=$1::uuid and emp.organization_id=$2::uuid
        and ev.status in ('submitted','reviewed','approved','published','locked') for update of ev`,
       [cycle_id, context.organizationId],
     );
