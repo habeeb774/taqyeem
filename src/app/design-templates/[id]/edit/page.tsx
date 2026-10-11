@@ -9,6 +9,7 @@ import {
   useState,
 } from "react";
 import { useParams, useRouter } from "next/navigation";
+import PropertyInput from "../../_components/property-input";
 import { DesignShell, designApi } from "@/components/design-shell";
 import { loadDesignFonts } from "@/lib/design-renderer";
 import { moveDesignBox, resizeDesignBox, type DesignBox } from "@/lib/design-position";
@@ -719,6 +720,8 @@ export default function EditorPage() {
                         {selected === i && !f.is_locked && (
                           <span
                             className="de-resize"
+                            title="اسحب لتغيير حجم العنصر"
+                            style={{ width: 20 / zoom, height: 20 / zoom, borderWidth: 2 / zoom }}
                             onPointerDown={(e) => pointerDown(e, i, "resize")}
                           />
                         )}
@@ -821,9 +824,12 @@ export default function EditorPage() {
                 <div className="de-section">
                   <h2>خصائص النص</h2>
                   <div className="de-fields">
-                    <F label="اسم الطبقة" k="layer_name" full />
-                    <F label="مفتاح الحقل" k="field_key" />
-                    <F label="اسم الحقل" k="field_label" />
+                    <PropertyInput label="اسم الطبقة" full
+                      value={selectedField.layer_name} onChange={(value) => update("layer_name", value)} />
+                    <PropertyInput label="مفتاح الحقل"
+                      value={selectedField.field_key} onChange={(value) => update("field_key", value)} />
+                    <PropertyInput label="اسم الحقل"
+                      value={selectedField.field_label} onChange={(value) => update("field_label", value)} />
                     <label className="ds-field full">
                       المحتوى
                       <textarea
@@ -885,8 +891,10 @@ export default function EditorPage() {
                         }
                       />
                     </label>
-                    <F label="النص الافتراضي" k="default_value" />
-                    <F label="Placeholder" k="placeholder" />
+                    <PropertyInput label="النص الافتراضي"
+                      value={selectedField.default_value} onChange={(value) => update("default_value", value)} />
+                    <PropertyInput label="Placeholder"
+                      value={selectedField.placeholder} onChange={(value) => update("placeholder", value)} />
                     <label className="ds-field">
                       <input
                         type="checkbox"
@@ -910,10 +918,14 @@ export default function EditorPage() {
                 <div className="de-section">
                   <h2>الموضع والحجم</h2>
                   <div className="de-fields">
-                    <N label="X" k="x" />
-                    <N label="Y" k="y" />
-                    <N label="العرض" k="width" />
-                    <N label="الارتفاع" k="height" />
+                    <PropertyInput label="X" numeric min={-12000} max={24000}
+                      value={selectedField.x} onChange={(value) => update("x", value)} />
+                    <PropertyInput label="Y" numeric min={-12000} max={24000}
+                      value={selectedField.y} onChange={(value) => update("y", value)} />
+                    <PropertyInput label="العرض" numeric min={20} max={24000}
+                      value={selectedField.width} onChange={(value) => update("width", value)} />
+                    <PropertyInput label="الارتفاع" numeric min={20} max={24000}
+                      value={selectedField.height} onChange={(value) => update("height", value)} />
                   </div>
                   <div className="de-mini-actions" style={{ marginTop: 9 }}>
                     <button className="ds-btn ghost" onClick={() => align("h")}>
@@ -967,8 +979,10 @@ export default function EditorPage() {
                         ))}
                       </select>
                     </label>
-                    <N label="حجم الخط" k="font_size" />
-                    <N label="الوزن" k="font_weight" step="100" />
+                    <PropertyInput label="حجم الخط" numeric min={6} max={600}
+                      value={selectedField.font_size} onChange={(value) => update("font_size", value)} />
+                    <PropertyInput label="الوزن" step="100" numeric min={100} max={900}
+                      value={selectedField.font_weight} onChange={(value) => update("font_weight", value)} />
                     <label className="ds-field">
                       اللون
                       <input
@@ -1002,13 +1016,20 @@ export default function EditorPage() {
                         <option value="auto">تلقائي</option>
                       </select>
                     </label>
-                    <N label="تباعد الأسطر" k="line_height" step="0.1" />
-                    <N label="تباعد الحروف" k="letter_spacing" step="0.1" />
-                    <N label="الشفافية" k="opacity" step="0.05" />
-                    <N label="الدوران" k="rotation" />
-                    <N label="أصغر خط" k="min_font_size" />
-                    <N label="أكبر خط" k="max_font_size" />
-                    <N label="أقصى حروف" k="max_length" />
+                    <PropertyInput label="تباعد الأسطر" step="0.1" numeric min={0.5} max={5}
+                      value={selectedField.line_height} onChange={(value) => update("line_height", value)} />
+                    <PropertyInput label="تباعد الحروف" step="0.1" numeric min={-20} max={100}
+                      value={selectedField.letter_spacing} onChange={(value) => update("letter_spacing", value)} />
+                    <PropertyInput label="الشفافية" step="0.05" numeric min={0} max={1}
+                      value={selectedField.opacity} onChange={(value) => update("opacity", value)} />
+                    <PropertyInput label="الدوران" numeric min={-360} max={360}
+                      value={selectedField.rotation} onChange={(value) => update("rotation", value)} />
+                    <PropertyInput label="أصغر خط" numeric min={4} max={600}
+                      value={selectedField.min_font_size} onChange={(value) => update("min_font_size", value)} />
+                    <PropertyInput label="أكبر خط" numeric min={4} max={600}
+                      value={selectedField.max_font_size} onChange={(value) => update("max_font_size", value)} />
+                    <PropertyInput label="أقصى حروف" numeric min={1} max={10000}
+                      value={selectedField.max_length} onChange={(value) => update("max_length", value)} />
                     <label className="ds-field">
                       <input
                         type="checkbox"
@@ -1088,48 +1109,4 @@ export default function EditorPage() {
       )}
     </DesignShell>
   );
-  function F({
-    label,
-    k,
-    full,
-  }: {
-    label: string;
-    k: keyof Field;
-    full?: boolean;
-  }) {
-    return (
-      <label className={`ds-field ${full ? "full" : ""}`}>
-        {label}
-        <input
-          className="ds-input"
-          value={(selectedField as any)?.[k] ?? ""}
-          onChange={(e) => update(k, e.target.value)}
-        />
-      </label>
-    );
-  }
-  function N({
-    label,
-    k,
-    step = "1",
-  }: {
-    label: string;
-    k: keyof Field;
-    step?: string;
-  }) {
-    return (
-      <label className="ds-field">
-        {label}
-        <input
-          className="ds-input"
-          type="number"
-          step={step}
-          value={(selectedField as any)?.[k] ?? ""}
-          onChange={(e) =>
-            update(k, e.target.value === "" ? null : Number(e.target.value))
-          }
-        />
-      </label>
-    );
-  }
 }
