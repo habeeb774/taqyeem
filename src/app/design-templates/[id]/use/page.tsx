@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import Link from 'next/link';
 import { useParams, useSearchParams } from 'next/navigation';
 import { DesignShell, designApi } from '@/components/design-shell';
 import { createDesignCanvas, loadDesignFonts } from '@/lib/design-renderer';
@@ -312,6 +313,7 @@ export default function UsePage() {
         <div className="ds-loading">
           <p role={failed ? 'alert' : 'status'}>{message || 'جارٍ تحميل القالب...'}</p>
           {failed && <button className="ds-btn" onClick={() => setLoadAttempt(value => value + 1)}>إعادة المحاولة</button>}
+          <Link href="/design-templates" className="ds-btn ghost">رجوع إلى القوالب</Link>
         </div>
       </DesignShell>
     );
@@ -331,6 +333,7 @@ export default function UsePage() {
               ? 'املأ الحقول وشاهد النتيجة مباشرة، ثم حمّل التصميم.'
               : 'هذا القالب جاهز للتحميل. اختر نوع الملف ثم حمّل التصميم.'}</p>
           </div>
+          <Link href="/design-templates" className="ds-btn ghost">رجوع إلى القوالب</Link>
         </div>
 
         <div className="du-layout">
